@@ -6,8 +6,6 @@
 
 自托管的 GitHub 仓库维护控制台。**v0.1.0-preview.1** 通过 GitHub App 接收 Issue 与 Pull Request 事件，由受控 Agent 提出修改或审核意见，再由 Controller 与确定性 Policy 执行 GitHub 写操作。
 
-当前版本采用以 `#66CCFF` 为核心的洛天依主题默认界面：轻量、清爽，并保留长期使用所需的信息密度。页面使用本项目生成的洛天依二次元立绘与 Q 版导航图，不包含第三方官图或来源不明的搬运图；角色权利与代码许可边界见素材清单。
-
 ## Preview 能力
 
 - Issue → 分析 → Sandbox 修复 → 测试 → 独立审核 → PR。
@@ -84,6 +82,4 @@ Local Sandbox 只提供路径、工作目录、超时与环境限制，不是强
 
 - **AGPL-3.0-only**：允许商业使用，前提是使用者遵守 AGPL 条款及其适用的源码提供义务。
 - **商业许可证**：如需闭源、专有集成、OEM 或其他替代授权条款，可与 **mcxianyujun** 单独签订书面协议；详情见 [Commercial License](COMMERCIAL-LICENSE.md)。
-- 本项目原创或生成的洛天依二创视觉素材，在项目作者拥有或控制的权利范围内使用 [CC BY-NC-SA 4.0](LICENSES/CC-BY-NC-SA-4.0.txt)。
-- 洛天依 / VSINGER 的角色名称、设定、形象及底层 IP 不属于本项目的 AGPL 或 CC 授权范围，相关权利归其权利方。
-- 第三方依赖继续遵循各自许可证。完整边界见 [NOTICE](NOTICE) 与 [素材授权清单](docs/licensing/asset-attribution.md)。
+- 美术素材与第三方资产继续遵循各自适用的许可证。完整边界见 [NOTICE](NOTICE) 与 [素材授权清单](docs/licensing/asset-attribution.md)。

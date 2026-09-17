@@ -8,10 +8,6 @@ Maintune is currently in Preview.
 
 A self-hosted GitHub repository maintenance console. **v0.1.0-preview.1** receives Issue and Pull Request events through a GitHub App, asks bounded Agents for analysis or code review, and leaves every GitHub write to the Controller and deterministic Policy.
 
-The default interface uses a light Luo Tianyi-inspired palette centered on `#66CCFF`, with project-generated fan artwork and chibi navigation icons. No official or unverified third-party artwork is included. See [Artwork and attribution](docs/licensing/asset-attribution.md) for the exact rights boundary.
-
-![Maintune preview](docs/images/preview-dashboard.png)
-
 ## Preview status
 
 - Issue triage separates actionable bugs, incomplete reports, product features, high-risk changes, and non-actionable chat.
@@ -91,6 +87,4 @@ Maintune uses a dual-license model:
 - **AGPL-3.0-only** — commercial use is allowed for users who comply with the AGPL terms, including its source-availability obligations where they apply.
 - **Commercial License** — available by separate written agreement with **mcxianyujun** for proprietary, closed-source, OEM, or other alternative licensing needs.
 
-Project-authored or project-generated Luo Tianyi derivative visuals use [CC BY-NC-SA 4.0](LICENSES/CC-BY-NC-SA-4.0.txt), only within rights owned or controlled by the project author. Luo Tianyi / VSINGER names, character settings, original character design, likeness, trademarks, and underlying IP are outside the project's AGPL and CC grants and remain with their rights holders. The visuals are fan-made and are not official VSINGER artwork.
-
-Third-party dependencies retain their own licenses. See [NOTICE](NOTICE), [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
+Artwork and third-party assets retain their applicable licenses. See [NOTICE](NOTICE), [Artwork and attribution](docs/licensing/asset-attribution.md), [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
