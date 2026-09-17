@@ -22,7 +22,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import select
 
-from .db import Config, Task, Timeline
+from .db import Config, Repository, Task, Timeline
 from .policy import owner_action
 
 
@@ -81,7 +81,7 @@ class PluginManifest(BaseModel):
     id: str
     name: str = Field(min_length=1, max_length=100)
     version: str
-    api_version: Literal[1]
+    api_version: int = Field(ge=1, le=1000)
     publisher: str = Field(min_length=1, max_length=100)
     description: str = Field(default="", max_length=500)
     maintune: MaintuneCompatibility
@@ -534,6 +534,8 @@ class PluginCapabilityBroker:
         if capability not in self.capabilities:
             raise PluginCapabilityError(f"Capability {capability!r} was not granted")
         action = str(params.get("action", ""))
+        if capability == "repository.read":
+            return self._repository_read(action, params)
         if capability == "task.read":
             return self._task_read(action, params)
         if capability == "owner_decision.submit":
@@ -543,6 +545,29 @@ class PluginCapabilityBroker:
         if capability in {"plugin.log", "plugin.health"}:
             return {"accepted": True}
         raise PluginCapabilityError("Capability is not implemented")
+
+    @staticmethod
+    def _repository_view(repository: Repository) -> dict[str, Any]:
+        data = repository.data if isinstance(repository.data, dict) else {}
+        return {
+            "full_name": repository.full_name,
+            "enabled": bool(data.get("enabled", True)),
+            "default_branch": str(data.get("default_branch") or ""),
+        }
+
+    def _repository_read(self, action: str, params: dict[str, Any]) -> Any:
+        with self.sessions() as db:
+            if action == "list":
+                limit = min(max(int(params.get("limit", 20)), 1), 100)
+                rows = db.scalars(select(Repository).order_by(Repository.full_name).limit(limit))
+                return [self._repository_view(row) for row in rows]
+            if action == "get":
+                full_name = str(params.get("full_name", ""))
+                row = db.get(Repository, full_name)
+                if not row:
+                    raise PluginCapabilityError("Repository not found")
+                return self._repository_view(row)
+        raise PluginCapabilityError("Unsupported repository.read action")
 
     def _task_view(self, task: Task) -> dict[str, Any]:
         return {"id": task.id, "kind": task.kind, "repository": task.repository, "number": task.number, "status": task.status, "created": task.created, "updated": task.updated, "title": task.data.get("title") or task.data.get("summary") or ""}

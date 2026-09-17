@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from maintainer.db import Config, Task, Timeline, database
+from maintainer.db import Config, Repository, Task, Timeline, database
 from maintainer.plugin_system import (
     PluginCapabilityBroker,
     PluginCapabilityError,
@@ -148,6 +148,31 @@ def test_package_rejects_symlink(tmp_path):
         manager.validate(archive)
 
 
+@pytest.mark.parametrize(
+    "manifest,error",
+    [
+        (MANIFEST.replace("api_version: 1", "api_version: 2"), "Unsupported Plugin API"),
+        (MANIFEST.replace("min_version: 0.1.0", "min_version: 99.0.0"), "newer Maintune"),
+        (MANIFEST + "unknown_field: true\n", "schema validation"),
+    ],
+)
+def test_package_rejects_incompatible_or_invalid_manifest(tmp_path, manifest, error):
+    archive = tmp_path / "bad.mtp"
+    package(archive, manifest)
+    manager = PluginPackageManager(tmp_path / "plugins", "0.1.0-preview.1")
+    with pytest.raises(PluginPackageError, match=error):
+        manager.validate(archive)
+
+
+def test_package_rejects_excessive_file_count(tmp_path, monkeypatch):
+    archive = tmp_path / "large.mtp"
+    package(archive, extra=[("extra.txt", "small")])
+    monkeypatch.setattr("maintainer.plugin_system.MAX_ARCHIVE_FILES", 4)
+    manager = PluginPackageManager(tmp_path / "plugins", "0.1.0-preview.1")
+    with pytest.raises(PluginPackageError, match="too many files"):
+        manager.validate(archive)
+
+
 def test_install_discover_duplicate_and_uninstall(tmp_path):
     archive = tmp_path / "plugin.mtp"
     package(archive)
@@ -218,6 +243,7 @@ def broker(tmp_path):
 
 def test_capabilities_task_read_owner_decision_and_replay(broker):
     with broker.begin() as db:
+        db.add(Repository(full_name="owner/repo", installation_id=123, data={"enabled": True, "default_branch": "main", "private_token": "never"}))
         task = Task(kind="issue", repository="owner/repo", number=7, event="issues.opened", delivery_id="plugin-owner", status="waiting_for_owner", data={"summary": "Choose"})
         db.add(task)
         db.flush()
@@ -226,7 +252,10 @@ def test_capabilities_task_read_owner_decision_and_replay(broker):
         denied = PluginCapabilityBroker(broker, "official.denied", {"task.read"})
         with pytest.raises(PluginCapabilityError, match="not granted"):
             await denied.call("owner_decision.submit", {"action": "submit"})
-        broker_api = PluginCapabilityBroker(broker, "official.test-plugin", {"task.read", "owner_decision.submit"})
+        broker_api = PluginCapabilityBroker(broker, "official.test-plugin", {"repository.read", "task.read", "owner_decision.submit"})
+        repositories = await broker_api.call("repository.read", {"action": "list"})
+        assert repositories == [{"full_name": "owner/repo", "enabled": True, "default_branch": "main"}]
+        assert "private_token" not in repositories[0] and "installation_id" not in repositories[0]
         detail = await broker_api.call("task.read", {"action": "get", "task_id": task_id})
         assert detail["status"] == "waiting_for_owner"
         result = await broker_api.call("owner_decision.submit", {"action": "submit", "task_id": task_id, "decision": "implement", "replay_key": "request-0001"})
