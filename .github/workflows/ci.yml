@@ -27,9 +27,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # setup-node resolves the pnpm store while configuring its cache. Enable
+      # Corepack first so a clean runner has the package-manager executable.
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - run: corepack enable
       - run: pnpm install --frozen-lockfile
         working-directory: frontend
       - run: pnpm build
