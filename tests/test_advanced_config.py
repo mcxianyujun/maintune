@@ -86,7 +86,7 @@ def test_v4_migration_preserves_legacy_data_and_is_idempotent(tmp_path):
 
 @pytest.fixture
 def configured_app(tmp_path):
-    settings = Settings(admin_token="a" * 40, encryption_key=Fernet.generate_key().decode(), database_url=f"sqlite:///{tmp_path / 'advanced.db'}", workspace_root=str(tmp_path / "workspaces"))
+    settings = Settings(admin_token="a" * 40, encryption_key=Fernet.generate_key().decode(), database_url=f"sqlite:///{tmp_path / 'advanced.db'}", workspace_root=str(tmp_path / "workspaces"), plugin_root=str(tmp_path / "plugins"))
     app = create_app(settings)
     with app.state.sessions.begin() as db:
         provider = Provider(id="p1", data=ProviderInput(name="P", base_url="https://models.example/v1", models=[model_definition()]).model_dump(exclude={"api_key"}), encrypted_key=app.state.vault.encrypt("provider-key"))

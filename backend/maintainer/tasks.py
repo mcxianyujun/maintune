@@ -29,10 +29,15 @@ class TaskStageError(RuntimeError):
 
 
 class TaskProcessor:
-    def __init__(self, sessions, vault, settings, github_factory=GitHubAppClient, provider_factory=OpenAICompatible, runtime=None, notifier_factory=EmailNotifier):
+    def __init__(self, sessions, vault, settings, github_factory=GitHubAppClient, provider_factory=OpenAICompatible, runtime=None, notifier_factory=EmailNotifier, event_sink=None):
         self.sessions, self.vault, self.settings = sessions, vault, settings
         self.github_factory, self.provider_factory = github_factory, provider_factory
         self.runtime, self.notifier_factory = runtime or OpenHandsRuntime(), notifier_factory
+        self.event_sink = event_sink
+
+    def emit_plugin_event(self, event: str, task_id: str, data=None):
+        if self.event_sink:
+            asyncio.create_task(self.event_sink(event, task_id, data or {}))
 
     def event(self, db, task_id, kind, data=None):
         db.add(Timeline(task_id=task_id, kind=kind, data=data or {}))
@@ -179,8 +184,10 @@ class TaskProcessor:
         return LocalSandbox(self.settings.workspace_root)
 
     def change_status(self, task_id: str, status: str, **data):
+        task_kind = ""
         with self.sessions.begin() as db:
             task = db.get(Task, task_id)
+            task_kind = task.kind
             if status.startswith("failed_"):
                 failure = {
                     "stage": data.pop("failure_stage", status.removeprefix("failed_")),
@@ -194,6 +201,20 @@ class TaskProcessor:
             task.status, task.lease_until = status, None
             task.data = {**task.data, **data}
             self.event(db, task_id, "status_changed", {"status": status})
+        event = {
+            "waiting_for_owner": "task.waiting_for_owner",
+            "completed": "task.completed",
+            "merged": "pr.merged",
+            "pr_created": "pr.created",
+        }.get(status)
+        if status.startswith("failed_"):
+            event = "task.failed"
+        if task_kind == "pull_request" and status == "waiting_for_contributor":
+            event = "pr.changes_requested"
+        elif task_kind == "pull_request" and status == "reviewed":
+            event = "pr.reviewed"
+        if event:
+            self.emit_plugin_event(event, task_id, {"status": status})
 
     async def process(self, task_id: str):
         with self.sessions.begin() as db:
@@ -215,6 +236,7 @@ class TaskProcessor:
                 if resolved:
                     task.lease_until = time.time() + max(config.task_timeout for config in resolved.values()) + 60
                     self.event(db, task_id, "runtime_config_resolved", {"configs": [config.audit_snapshot() for config in resolved.values()]})
+        self.emit_plugin_event("task.started", task_id, {"attempt": task.attempts})
         try:
             if repo_data is None:
                 raise RuntimeError("Repository configuration is unavailable")

@@ -26,7 +26,7 @@ def app(tmp_path):
         '<!doctype html><script src="/assets/app.js"></script><link href="/assets/app.css" rel="stylesheet">',
         encoding="utf-8",
     )
-    return create_app(Settings(admin_token="a" * 40, encryption_key=Fernet.generate_key().decode(), database_url=f"sqlite:///{tmp_path / 'app.db'}", workspace_root=str(tmp_path / "workspaces"), static_dir=str(static)))
+    return create_app(Settings(admin_token="a" * 40, encryption_key=Fernet.generate_key().decode(), database_url=f"sqlite:///{tmp_path / 'app.db'}", workspace_root=str(tmp_path / "workspaces"), static_dir=str(static), plugin_root=str(tmp_path / "plugins")))
 
 
 @pytest.fixture
