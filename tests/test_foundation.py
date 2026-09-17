@@ -17,7 +17,16 @@ from maintainer.security import Settings
 
 @pytest.fixture
 def app(tmp_path):
-    return create_app(Settings(admin_token="a" * 40, encryption_key=Fernet.generate_key().decode(), database_url=f"sqlite:///{tmp_path / 'app.db'}", workspace_root=str(tmp_path / "workspaces")))
+    static = tmp_path / "static"
+    assets = static / "assets"
+    assets.mkdir(parents=True)
+    (assets / "app.js").write_text("console.log('test asset')", encoding="utf-8")
+    (assets / "app.css").write_text("body { color: black; }", encoding="utf-8")
+    (static / "index.html").write_text(
+        '<!doctype html><script src="/assets/app.js"></script><link href="/assets/app.css" rel="stylesheet">',
+        encoding="utf-8",
+    )
+    return create_app(Settings(admin_token="a" * 40, encryption_key=Fernet.generate_key().decode(), database_url=f"sqlite:///{tmp_path / 'app.db'}", workspace_root=str(tmp_path / "workspaces"), static_dir=str(static)))
 
 
 @pytest.fixture
