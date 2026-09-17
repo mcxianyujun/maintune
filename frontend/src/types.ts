@@ -82,6 +82,14 @@ export type Task = {
   triage?: { classification?: string; risk?: string; reason?: string; affected_components?: string[] };
   pull_url?: string; timeline?: { timestamp: number; kind: string; data: Record<string, unknown> }[];
 };
+export type PluginConfigField = { type: "string" | "boolean" | "integer" | "select" | "string_list" | "secret"; title: string; description: string; required: boolean; default: unknown; options: string[] };
+export type Plugin = {
+  id: string; name: string; version: string; publisher: string; description: string; api_version: number;
+  capabilities: string[]; config_schema: Record<string, PluginConfigField>; config: Record<string, unknown>;
+  enabled: boolean; runtime_status: "running" | "stopped" | "error"; error: string;
+  connection_status: "connected" | "disconnected"; connected_instance: string; last_heartbeat: number | null;
+  event_subscriptions: string[];
+};
 
 export const emptyCapabilities = (): ModelCapabilities => ({
   supports_reasoning: false, supports_reasoning_effort: false, supports_reasoning_budget: false,
