@@ -1,0 +1,32 @@
+services:
+  maintainer:
+    build:
+      context: .
+      args:
+        APP_VERSION: ${MAINTAINER_VERSION:-0.1.0-preview.1}
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+    image: ${MAINTAINER_IMAGE_NAME:-ai-maintainer}:${MAINTAINER_VERSION:-0.1.0-preview.1}
+    restart: unless-stopped
+    init: true
+    env_file: ${MAINTAINER_ENV_FILE:-.env}
+    ports:
+      - "${MAINTAINER_BIND_ADDRESS:-127.0.0.1}:${MAINTAINER_PORT:-8000}:8000"
+    volumes:
+      - "${MAINTAINER_DATA_DIR:-./data}:/app/data"
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 1g
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

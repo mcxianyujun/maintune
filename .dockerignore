@@ -1,0 +1,11 @@
+*
+!requirements.lock
+!pyproject.toml
+!backend/
+!backend/**
+!frontend/
+!frontend/dist/
+!frontend/dist/**
+!LICENSE
+!NOTICE
+**/__pycache__

@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install --requirement requirements.lock
+      - run: pip install --no-deps --editable .
+      - run: pip check
+      - run: pytest -q
+      - run: python scripts/release_audit.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm build
+        working-directory: frontend
+      - run: cp .env.example .env
+      - run: docker compose config --quiet
+      - run: docker build --build-arg APP_VERSION=0.1.0-preview.1 --tag ai-maintainer:ci .
+      - run: docker run --rm --entrypoint pip ai-maintainer:ci check
+      - name: Generate runtime SBOM
+        run: docker run --rm -i --entrypoint python ai-maintainer:ci - < scripts/generate_runtime_sbom.py > runtime-sbom.cdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-sbom-cyclonedx
+          path: runtime-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Container smoke test
+        run: |
+          docker run -d --name ai-maintainer-ci -p 127.0.0.1:18000:8000 \
+            -e MAINTAINER_ADMIN_TOKEN=ci-only-token-000000000000000000000000 \
+            -e MAINTAINER_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= \
+            ai-maintainer:ci
+          for attempt in $(seq 1 60); do curl -fsS http://127.0.0.1:18000/healthz && exit 0; sleep 2; done
+          docker logs ai-maintainer-ci
+          exit 1
+      - if: always()
+        run: docker rm -f ai-maintainer-ci 2>/dev/null || true
+
+  windows-scripts:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell installers
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem scripts/windows/*.ps1 | ForEach-Object {
+            $tokens = $null; $parseErrors = $null
+            [Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            $errors += $parseErrors
+          }
+          if ($errors.Count) { $errors | Format-List; exit 1 }

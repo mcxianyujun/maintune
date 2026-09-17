@@ -1,0 +1,41 @@
+name: Release candidate bundle
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm build
+        working-directory: frontend
+      - run: python scripts/release_audit.py
+      - run: python scripts/build_release.py
+      - name: Verify source-only bundle
+        run: |
+          ! tar -tzf release-dist/ai-maintainer-v0.1.0-preview.1.tar.gz | grep -E '\.(whl|db|sqlite|pem|key|log)$|(^|/)\.env$|lmnr.claude.code.proxy'
+          sha256sum --check release-dist/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-maintainer-v0.1.0-preview.1-source-bundle
+          path: |
+            release-dist/ai-maintainer-v0.1.0-preview.1.tar.gz
+            release-dist/ai-maintainer-v0.1.0-preview.1.zip
+            release-dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7

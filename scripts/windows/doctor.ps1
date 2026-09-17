@@ -1,0 +1,5 @@
+[CmdletBinding()] param([string]$InstallDirectory='')
+$ErrorActionPreference='Stop'; Set-StrictMode -Version Latest; . (Join-Path $PSScriptRoot 'Common.ps1'); if(-not $InstallDirectory){$InstallDirectory=Get-DefaultInstallRoot}; $InstallDirectory=[IO.Path]::GetFullPath($InstallDirectory)
+Assert-Docker; $versionDirectory=Get-CurrentVersionDirectory $InstallDirectory; $envFile=Join-Path $InstallDirectory '.env'; $port=[int](Get-EnvValue $envFile 'MAINTAINER_PORT'); $data=Get-EnvValue $envFile 'MAINTAINER_DATA_DIR'
+Invoke-Compose $InstallDirectory $versionDirectory @('config','--quiet'); Write-Host 'Compose: OK'; $health=Wait-MaintainerHealth $port; Write-Host "Health: $($health|ConvertTo-Json -Compress)"; Invoke-Compose $InstallDirectory $versionDirectory @('exec','-T','maintainer','pip','check'); Invoke-Compose $InstallDirectory $versionDirectory @('exec','-T','maintainer','python','-c',"import openhands.sdk; print('OpenHands import: OK')")
+$drive=Get-PSDrive -Name ([IO.Path]::GetPathRoot([IO.Path]::GetFullPath($data)).Substring(0,1)); Write-Host "Data directory: $data"; Write-Host "Free disk bytes: $($drive.Free)"; Write-Host "Base URL: http://127.0.0.1:$port"

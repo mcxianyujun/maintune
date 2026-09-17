@@ -1,0 +1,61 @@
+const { chromium } = require("playwright-core");
+const { generateKeyPairSync } = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const url = process.env.MAINTAINER_SMOKE_URL;
+const tokenFile = process.env.MAINTAINER_ADMIN_TOKEN_FILE;
+const mockUrl = process.env.MAINTAINER_SETUP_MOCK_URL || "http://preview-mock:8080";
+if (!url || !tokenFile) throw new Error("MAINTAINER_SMOKE_URL and MAINTAINER_ADMIN_TOKEN_FILE are required");
+const env = Object.fromEntries(fs.readFileSync(tokenFile, "utf8").split(/\r?\n/).filter(Boolean).map(line => { const index=line.indexOf("="); return [line.slice(0,index),line.slice(index+1).replace(/^"|"$/g,"")]; }));
+const token = env.MAINTAINER_ADMIN_TOKEN;
+if (!token) throw new Error("Token file does not contain MAINTAINER_ADMIN_TOKEN");
+const output = path.resolve(__dirname, "../../test-results/preview-linux");
+fs.mkdirSync(output, { recursive: true });
+
+(async () => {
+  const chrome = process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe";
+  const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ["--no-proxy-server", "--disable-extensions", "--disable-background-networking"] });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: "block" });
+  const page = await context.newPage();
+  const consoleErrors=[], failedRequests=[];
+  page.on("console", message => { if(message.type()==="error") consoleErrors.push(message.text()); });
+  page.on("pageerror", error => consoleErrors.push(error.message));
+  page.on("requestfailed", request => failedRequests.push(`${request.method()} ${request.url()} ${request.failure()?.errorText || "failed"}`));
+  page.on("response", response => { if(response.status()>=400) failedRequests.push(`${response.request().method()} ${response.url()} HTTP ${response.status()}`); });
+  try {
+    const keys=generateKeyPairSync("rsa",{modulusLength:2048,privateKeyEncoding:{type:"pkcs8",format:"pem"},publicKeyEncoding:{type:"spki",format:"pem"}});
+    await page.goto(url,{waitUntil:"networkidle",timeout:30000});
+    await page.getByLabel("管理员访问令牌").fill(token);
+    await page.getByRole("button",{name:"进入控制台 →"}).click();
+    await page.getByRole("dialog",{name:"First-run Setup Wizard"}).waitFor();
+    await page.getByRole("button",{name:"开始配置"}).click();
+    await page.getByRole("button",{name:"继续"}).click();
+    await page.getByLabel("Provider 名称").fill("Linux Fresh Install");
+    await page.getByLabel("Base URL").fill(`${mockUrl}/v1`);
+    await page.getByLabel("API Key").fill("ephemeral-linux-e2e-key");
+    await page.getByLabel("Model ID").fill("preview-model");
+    await page.getByRole("button",{name:"保存并继续"}).click();
+    await page.getByText("03 / GITHUB APP").waitFor();
+    await page.getByLabel("App ID").fill("1");
+    await page.getByLabel("Installation ID（可选）").fill("42");
+    await page.getByLabel("GitHub API URL").fill(mockUrl);
+    await page.getByLabel("Private key PEM").fill(keys.privateKey);
+    await page.getByLabel("Webhook Secret").fill("ephemeral-linux-webhook-secret");
+    await page.getByRole("button",{name:"保存并继续"}).click();
+    await page.getByText("04 / SANDBOX").waitFor();
+    await page.getByRole("button",{name:"保存、测试并继续"}).click();
+    await page.getByText("05 / REPOSITORY").waitFor();
+    await page.getByLabel("owner/repository").fill("preview/linux-fresh");
+    await page.getByRole("button",{name:"保存并继续"}).click();
+    await page.getByRole("button",{name:"暂时跳过"}).click();
+    await page.getByRole("button",{name:"运行全部诊断"}).click();
+    await page.getByText("SETUP COMPLETE").waitFor({timeout:60000});
+    await page.getByRole("button",{name:"进入概览"}).click();
+    await page.getByRole("dialog",{name:"First-run Setup Wizard"}).waitFor({state:"detached"});
+    await page.locator(".diagnostic-list").last().waitFor();
+    await page.screenshot({path:path.join(output,"linux-fresh-dashboard.png"),fullPage:true});
+    if(consoleErrors.length||failedRequests.length) throw new Error(JSON.stringify({consoleErrors,failedRequests}));
+    console.log(JSON.stringify({freshInstallSetup:true,consoleErrors,failedRequests,screenshot:"linux-fresh-dashboard.png"}));
+  } finally { await browser.close(); }
+})().catch(error=>{console.error(error.stack||error.message);process.exit(1);});

@@ -1,0 +1,29 @@
+{
+  "name": "maintune-ui",
+  "description": "Maintune web console",
+  "private": true,
+  "version": "0.1.0-preview.1",
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@11.19.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "smoke:preview": "node scripts/preview-e2e.cjs",
+    "smoke:i18n": "node scripts/i18n-smoke.cjs",
+    "smoke:public": "node scripts/public-smoke.cjs",
+    "smoke:production": "node scripts/production-acceptance.cjs"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "playwright-core": "^1.63.0",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.0"
+  }
+}

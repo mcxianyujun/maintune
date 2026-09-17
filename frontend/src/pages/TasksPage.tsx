@@ -1,0 +1,25 @@
+import { useState } from "react";
+import { api } from "../api";
+import type { Task } from "../types";
+import type { ConsoleState } from "../useConsole";
+import { EmptyState } from "../assets/theme/ThemeArt";
+import { statusKeys } from "../components";
+import { useI18n } from "../i18n";
+import type { MessageKey } from "../i18n/resources";
+
+const timelineKeys: Record<string, MessageKey> = Object.fromEntries([
+  "webhook_received", "task_started", "triage_classified", "issue_analyzed", "product_decision_required", "high_risk_owner_gate", "clarification_requested", "contributor_reply_received", "clarification_resolved", "technical_changes_requested", "technical_review_passed", "pr_review_completed", "status_changed", "task_failed", "tests_completed", "sandbox_created", "worker_completed", "code_review_completed", "owner_decision", "owner_decision_executed", "owner_decision_deferred", "already_resolved", "unexpected_no_change", "pr_context_loaded", "review_findings_resolved", "non_actionable",
+].map(key => [key, `timeline.${key}` as MessageKey]));
+
+export function TasksPage({ c }: { c: ConsoleState }) {
+  const { t, date } = useI18n();
+  const { page, tasks, busy, act, load } = c;
+  const [decision, setDecision] = useState<Record<string,string>>({});
+  const [decisionAction, setDecisionAction] = useState<Record<string,string>>({});
+  const [detail, setDetail] = useState<Task>();
+  if (page !== "维护任务") return null;
+  return <section><div className="section-head"><div><h2>{t("tasks.title")}</h2><p className="muted">{t("tasks.description")}</p></div><button disabled={busy} onClick={()=>act(load)}>{t("common.refresh")}</button></div>
+    <div className="table-wrap"><table><thead><tr><th>{t("tasks.repoEvent")}</th><th>{t("tasks.summary")}</th><th>{t("common.status")}</th><th>{t("tasks.updated")}</th><th/></tr></thead><tbody>{tasks.map(task=><tr key={task.id}><td><strong>{task.repository} #{task.number}</strong><small>{task.kind} · {task.event} · {task.id.slice(0,8)}</small></td><td className="break">{task.summary||task.error||t("tasks.waiting")}{task.status === "waiting_for_owner" && <div className="triage-callout"><strong>{t("tasks.ownerGate")}</strong>{task.triage?.reason && <small>{task.triage.reason}</small>}</div>}{task.status === "waiting_for_contributor" && <div className="triage-callout"><strong>{t("tasks.contributorWait")}</strong></div>}{task.status === "non_actionable" && <div className="triage-callout"><strong>{t("tasks.nonActionable")}</strong></div>}{task.pull_url&&<small><a href={task.pull_url} target="_blank" rel="noreferrer">{t("tasks.openPr")}</a></small>}{task.status==="waiting_for_owner"&&<div className="decision"><select aria-label={t("tasks.decisionAction")} value={decisionAction[task.id]||"implement"} onChange={e=>setDecisionAction({...decisionAction,[task.id]:e.target.value})}><option value="implement">{t("tasks.actionImplement")}</option><option value="reject">{t("tasks.actionReject")}</option><option value="defer">{t("tasks.actionDefer")}</option></select><textarea rows={2} placeholder={t("tasks.decisionPlaceholder")} value={decision[task.id]||""} onChange={e=>setDecision({...decision,[task.id]:e.target.value})}/><button disabled={busy||!decision[task.id]?.trim()} onClick={()=>act(async()=>{await api(`/tasks/${task.id}/decision`,"POST",{decision:decision[task.id],action:decisionAction[task.id]||"implement"});setDecision({...decision,[task.id]:""});await load();},t("tasks.decisionSubmitted"))}>{t("tasks.submitDecision")}</button></div>}</td><td><span className={"badge "+task.status}>{statusKeys[task.status] ? t(statusKeys[task.status]) : task.status}</span></td><td>{date(task.updated)}</td><td><button className="text" onClick={()=>act(async()=>setDetail(await api<Task>(`/tasks/${task.id}`)))}>{t("tasks.timeline")}</button></td></tr>)}</tbody></table>{!tasks.length&&<EmptyState title={t("tasks.empty")}>{t("tasks.emptyHint")}</EmptyState>}</div>
+    {detail&&<div className="modal-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setDetail(undefined)}}><section className="modal"><div className="section-head"><div><h2>{detail.repository} #{detail.number}</h2><p className="muted">{detail.id} · {statusKeys[detail.status] ? t(statusKeys[detail.status]) : detail.status}</p></div><button onClick={()=>setDetail(undefined)}>{t("common.close")}</button></div>{detail.failure&&<div className="failure-detail" role="alert"><strong>{t("tasks.failure")}</strong><dl><div><dt>{t("tasks.stage")}</dt><dd>{detail.failure.stage}</dd></div><div><dt>{t("tasks.exception")}</dt><dd>{detail.failure.exception_type}</dd></div><div><dt>{t("tasks.message")}</dt><dd>{detail.failure.message}</dd></div><div><dt>{t("tasks.attempt")}</dt><dd>{detail.failure.attempt} ({t("tasks.retryCount", {count: detail.failure.retry})})</dd></div></dl></div>}<div className="timeline">{detail.timeline?.map((item,i)=><div className="timeline-item" key={i}><time>{date(item.timestamp)}</time><strong>{timelineKeys[item.kind] ? t(timelineKeys[item.kind]) : item.kind}</strong><pre>{JSON.stringify(item.data,null,2)}</pre></div>)}</div></section></div>}
+  </section>;
+}

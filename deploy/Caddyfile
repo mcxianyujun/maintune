@@ -1,0 +1,7 @@
+maintainer.erichmc.bond {
+    request_body {
+        max_size 2MB
+    }
+    reverse_proxy maintainer:8000
+    header Strict-Transport-Security "max-age=31536000"
+}

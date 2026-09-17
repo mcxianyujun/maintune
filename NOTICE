@@ -1,0 +1,29 @@
+Maintune
+Copyright (C) 2026 mcxianyujun（mc咸鱼君）
+
+Maintune source code is licensed under the GNU Affero General Public
+License v3.0 only (AGPL-3.0-only). See LICENSE. A separate alternative
+Commercial License may be obtained only through an individual written
+agreement with mcxianyujun. See COMMERCIAL-LICENSE.md. No commercial license
+is granted merely by this notice or by distribution of this repository.
+The AGPL permits commercial use when its terms are followed. The separate
+Commercial License is intended for proprietary, closed-source, OEM, or other
+alternative licensing needs.
+
+Third-party dependencies retain their own licenses. The Preview release bundle
+does not contain Python wheels, package caches, or prebuilt runtime images.
+During a local Docker build, dependency artifacts are obtained from their
+official package sources according to requirements.lock.
+
+No official or externally sourced Luo Tianyi artwork is included in
+v0.1.0-preview.1. Project-authored or project-generated Luo Tianyi derivative
+visual assets are licensed, only to the extent of rights owned or controlled
+by the project author, under Creative Commons Attribution-NonCommercial-
+ShareAlike 4.0 International (CC BY-NC-SA 4.0). See
+LICENSES/CC-BY-NC-SA-4.0.txt and docs/licensing/asset-attribution.md.
+
+The Luo Tianyi / VSINGER character names, character settings, likenesses,
+official designs, trademarks and underlying intellectual property are outside
+the scope of both AGPL-3.0-only and CC BY-NC-SA 4.0 in this repository. Those
+rights remain with their respective rights holders. The fan visuals are not
+official assets and do not imply endorsement.
