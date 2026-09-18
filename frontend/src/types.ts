@@ -88,7 +88,7 @@ export type Plugin = {
   capabilities: string[]; config_schema: Record<string, PluginConfigField>; config: Record<string, unknown>;
   enabled: boolean; runtime_status: "running" | "stopped" | "error"; error: string;
   connection_status: "connected" | "disconnected"; connected_instance: string; last_heartbeat: number | null;
-  event_subscriptions: string[];
+  event_subscriptions: string[]; has_readme: boolean;
 };
 
 export const emptyCapabilities = (): ModelCapabilities => ({

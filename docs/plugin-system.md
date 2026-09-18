@@ -24,9 +24,16 @@ and `secret`. Secret values are encrypted with the Maintune Vault and are only
 returned to the UI as `********`.
 
 Copy packages to `data/plugins/inbox`. The Plugins page can scan, validate,
-install, enable, disable, and uninstall them. Installed source is under
+install, enable, disable, safely reload, and uninstall them. A package-provided
+`README.md` is available from every plugin card and is rendered as Markdown
+without raw HTML or executable links. Configuration stays in a separate settings
+dialog instead of being exposed on the list card. Installed source is under
 `data/plugins/installed`; private virtual environments, state, and the event
 outbox are under `data/plugins/runtime`.
+
+Disabling a plugin closes its external transports, stops its process, and stops
+event delivery while retaining configuration and runtime data. Re-enabling
+starts it again from the preserved configuration.
 
 Validation happens before extraction or execution. Maintune rejects absolute or
 parent paths, backslashes, symlinks, duplicate paths and plugin IDs, missing
@@ -75,7 +82,7 @@ Events use this shape:
   "event_id": "evt_0123456789abcdef0123456789abcdef",
   "timestamp": "2026-09-18T00:00:00+00:00",
   "repository": "example/repository",
-  "task": {"id": "42", "status": "waiting_for_owner", "title": "Example"},
+  "task": {"id": "01234567-89ab-cdef-0123-456789abcdef", "ref": "01234567", "kind": "issue", "number": 15, "status": "waiting_for_owner", "title": "Example"},
   "data": {"reason": "Owner policy decision required"}
 }
 ```
@@ -85,6 +92,11 @@ credentials, private keys, passwords, or secrets. Hidden reasoning is never an
 event field. Critical events are retained in a bounded per-plugin outbox until
 the remote peer acknowledges their `event_id`. Consumers must persist event IDs
 and deduplicate because delivery is at least once.
+
+Task reads and events include a shortest unique `ref` of at least eight
+characters. Human-facing integrations should display the repository Issue or PR
+number and use this short reference in commands. Full task UUIDs remain valid
+for compatibility. Ambiguous short references are rejected rather than guessed.
 
 ## AstrBot bridge
 
