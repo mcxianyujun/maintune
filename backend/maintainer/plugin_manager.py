@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import WebSocket
+from sqlalchemy import select
 
 from .db import Config, Task
 from .plugin_system import (
@@ -153,14 +154,37 @@ class PluginManager:
         self._save_record(plugin_id, record)
         return self.view(plugin_id)
 
-    async def disable(self, plugin_id: str) -> dict[str, Any]:
+    async def _stop_runtime(self, plugin_id: str) -> None:
+        sockets = list(self.connections.pop(plugin_id, set()))
+        self.connection_state.pop(plugin_id, None)
+        self.subscriptions.pop(plugin_id, None)
+        for socket in sockets:
+            try:
+                await socket.close(code=1012)
+            except Exception:
+                pass
         process = self.processes.pop(plugin_id, None)
         if process:
             await process.stop()
+
+    async def disable(self, plugin_id: str) -> dict[str, Any]:
+        await self._stop_runtime(plugin_id)
         record = self._record(plugin_id)
         record["enabled"] = False
         self._save_record(plugin_id, record)
         return self.view(plugin_id)
+
+    async def reload(self, plugin_id: str) -> dict[str, Any]:
+        if not self._record(plugin_id).get("enabled"):
+            raise PluginError("Plugin is disabled")
+        await self._stop_runtime(plugin_id)
+        try:
+            return await self.enable(plugin_id)
+        except Exception as error:
+            record = self._record(plugin_id)
+            record["error"] = self._sanitize(str(error))
+            self._save_record(plugin_id, record)
+            raise
 
     async def uninstall(self, plugin_id: str) -> None:
         await self.disable(plugin_id)
@@ -222,6 +246,20 @@ class PluginManager:
     def list(self) -> list[dict[str, Any]]:
         return [self.view(manifest.id) for manifest in self.packages.discover()]
 
+    def readme(self, plugin_id: str) -> str:
+        self._manifest(plugin_id)
+        root = (self.packages.installed / plugin_id).resolve()
+        candidate = root / "README.md"
+        path = candidate.resolve()
+        if candidate.is_symlink() or path.parent != root or not path.is_file():
+            raise PluginPackageError("Plugin README is not available")
+        if path.stat().st_size > 512 * 1024:
+            raise PluginPackageError("Plugin README is too large")
+        try:
+            return path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as error:
+            raise PluginPackageError("Plugin README must be UTF-8") from error
+
     def view(self, plugin_id: str) -> dict[str, Any]:
         manifest = self._manifest(plugin_id)
         record = self._record(plugin_id)
@@ -248,6 +286,7 @@ class PluginManager:
             "connected_instance": connection.get("instance", ""),
             "last_heartbeat": connection.get("last_heartbeat"),
             "event_subscriptions": sorted(self.subscriptions.get(plugin_id, set())),
+            "has_readme": (self.packages.installed / plugin_id / "README.md").is_file(),
         }
 
     def _secret(self, plugin_id: str, name: str) -> str:
@@ -313,7 +352,9 @@ class PluginManager:
         with self.sessions() as db:
             task = db.get(Task, task_id)
             if task:
-                await self.publish(make_event(event, task, data))
+                task_ids = list(db.scalars(select(Task.id)))
+                reference = PluginCapabilityBroker._short_task_reference(task.id, task_ids)
+                await self.publish(make_event(event, task, data, reference))
 
     def set_subscriptions(self, plugin_id: str, events: list[str]) -> None:
         self.subscriptions[plugin_id] = {event for event in events if isinstance(event, str) and len(event) <= 80}

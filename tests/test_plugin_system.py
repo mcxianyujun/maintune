@@ -258,7 +258,8 @@ def test_capabilities_task_read_owner_decision_and_replay(broker):
         assert "private_token" not in repositories[0] and "installation_id" not in repositories[0]
         detail = await broker_api.call("task.read", {"action": "get", "task_id": task_id})
         assert detail["status"] == "waiting_for_owner"
-        result = await broker_api.call("owner_decision.submit", {"action": "submit", "task_id": task_id, "decision": "implement", "replay_key": "request-0001"})
+        assert detail["ref"] == task_id[:8]
+        result = await broker_api.call("owner_decision.submit", {"action": "submit", "task_id": detail["ref"], "decision": "implement", "replay_key": "request-0001"})
         assert result == {"status": "queued", "action": "implement"}
         with pytest.raises(PluginCapabilityError, match="replay"):
             await broker_api.call("owner_decision.submit", {"action": "submit", "task_id": task_id, "decision": "implement", "replay_key": "request-0001"})
@@ -268,6 +269,27 @@ def test_capabilities_task_read_owner_decision_and_replay(broker):
         assert task.status == "queued" and task.data["owner_decision_source"] == "official.test-plugin"
         event = db.scalar(__import__("sqlalchemy").select(Timeline).where(Timeline.task_id == task_id, Timeline.kind == "owner_decision"))
         assert event.data == {"action": "implement", "source": "official.test-plugin"}
+
+
+def test_short_task_references_are_unique_and_ambiguous_prefixes_are_rejected(broker):
+    first_id = "deadbeef-0000-4000-8000-000000000001"
+    second_id = "deadbeef-0000-4000-8000-000000000002"
+    with broker.begin() as db:
+        db.add_all([
+            Task(id=first_id, kind="issue", repository="owner/repo", number=1, event="issues.opened", delivery_id="short-1", status="waiting_for_owner", data={}),
+            Task(id=second_id, kind="issue", repository="owner/repo", number=2, event="issues.opened", delivery_id="short-2", status="waiting_for_owner", data={}),
+        ])
+    async def scenario():
+        api = PluginCapabilityBroker(broker, "official.test-plugin", {"task.read", "owner_decision.submit"})
+        tasks = await api.call("task.read", {"action": "list"})
+        references = {item["id"]: item["ref"] for item in tasks}
+        assert references[first_id] != references[second_id]
+        assert len(references[first_id]) > 8 and len(references[second_id]) > 8
+        with pytest.raises(PluginCapabilityError, match="ambiguous"):
+            await api.call("task.read", {"action": "get", "task_id": "deadbeef"})
+        detail = await api.call("task.read", {"action": "get", "task_id": references[first_id]})
+        assert detail["id"] == first_id
+    asyncio.run(scenario())
 
 
 def test_event_model_redacts_sensitive_fields(broker):
@@ -280,6 +302,7 @@ def test_event_model_redacts_sensitive_fields(broker):
     assert event.repository == "owner/repo"
     assert event.data == {"reason": "ok"}
     assert event.event_id.startswith("evt_")
+    assert event.task["ref"] == task.id[:8]
 
 
 def test_manager_secret_masking_token_rotation_and_event_ack(tmp_path):
@@ -290,6 +313,8 @@ def test_manager_secret_masking_token_rotation_and_event_ack(tmp_path):
     inbox = manager.packages.inbox / archive.name
     inbox.write_bytes(archive.read_bytes())
     manager.install(archive.name)
+    assert manager.readme("official.test-plugin") == "test"
+    assert manager.view("official.test-plugin")["has_readme"] is True
     manager.configure("official.test-plugin", {"bridge_token": "first-token-" + "x" * 40})
     assert manager.view("official.test-plugin")["config"]["bridge_token"] == "********"
     old_token = manager._secret("official.test-plugin", "bridge_token")
@@ -311,4 +336,57 @@ def test_manager_secret_masking_token_rotation_and_event_ack(tmp_path):
         assert event.event_id not in manager._load_outbox("official.test-plugin")
         await manager.stop()
     asyncio.run(scenario())
+    engine.dispose()
+
+
+def test_manager_reload_and_disable_close_transports_and_preserve_config(tmp_path):
+    archive = tmp_path / "plugin.mtp"
+    package(archive)
+    engine, sessions = database(f"sqlite:///{tmp_path / 'lifecycle.db'}")
+    manager = PluginManager(tmp_path / "plugins", "0.1.0-preview.1", sessions, Vault(Fernet.generate_key().decode()))
+    inbox = manager.packages.inbox / archive.name
+    inbox.write_bytes(archive.read_bytes())
+    manager.install(archive.name)
+    manager.configure("official.test-plugin", {"bridge_token": "token-" + "x" * 40, "mode": "quiet"})
+
+    class Socket:
+        def __init__(self): self.closed = []
+        async def close(self, code): self.closed.append(code)
+
+    async def scenario():
+        await manager.enable("official.test-plugin")
+        first_process = manager.processes["official.test-plugin"]
+        first_socket = Socket()
+        manager.connections["official.test-plugin"] = {first_socket}
+        manager.connection_state["official.test-plugin"] = {"instance": "test"}
+        reloaded = await manager.reload("official.test-plugin")
+        assert first_socket.closed == [1012]
+        assert reloaded["enabled"] is True and reloaded["runtime_status"] == "running"
+        assert manager.processes["official.test-plugin"] is not first_process
+        assert reloaded["config"]["mode"] == "quiet"
+        assert reloaded["config"]["bridge_token"] == "********"
+
+        second_socket = Socket()
+        manager.connections["official.test-plugin"] = {second_socket}
+        disabled = await manager.disable("official.test-plugin")
+        assert second_socket.closed == [1012]
+        assert disabled["enabled"] is False and disabled["runtime_status"] == "stopped"
+        assert disabled["config"]["mode"] == "quiet"
+        assert "official.test-plugin" not in manager.connections
+        await manager.stop()
+    asyncio.run(scenario())
+    engine.dispose()
+
+
+def test_manager_rejects_oversized_readme(tmp_path):
+    archive = tmp_path / "plugin.mtp"
+    package(archive)
+    engine, sessions = database(f"sqlite:///{tmp_path / 'readme.db'}")
+    manager = PluginManager(tmp_path / "plugins", "0.1.0-preview.1", sessions, Vault(Fernet.generate_key().decode()))
+    inbox = manager.packages.inbox / archive.name
+    inbox.write_bytes(archive.read_bytes())
+    manager.install(archive.name)
+    (manager.packages.installed / "official.test-plugin" / "README.md").write_text("x" * (512 * 1024 + 1), encoding="utf-8")
+    with pytest.raises(PluginPackageError, match="too large"):
+        manager.readme("official.test-plugin")
     engine.dispose()

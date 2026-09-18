@@ -569,8 +569,31 @@ class PluginCapabilityBroker:
                 return self._repository_view(row)
         raise PluginCapabilityError("Unsupported repository.read action")
 
-    def _task_view(self, task: Task) -> dict[str, Any]:
-        return {"id": task.id, "kind": task.kind, "repository": task.repository, "number": task.number, "status": task.status, "created": task.created, "updated": task.updated, "title": task.data.get("title") or task.data.get("summary") or ""}
+    @staticmethod
+    def _short_task_reference(task_id: str, task_ids: list[str]) -> str:
+        minimum = min(8, len(task_id))
+        for length in range(minimum, len(task_id) + 1):
+            candidate = task_id[:length]
+            if sum(value.startswith(candidate) for value in task_ids) == 1:
+                return candidate
+        return task_id
+
+    @staticmethod
+    def _resolve_task(db, reference: str) -> Task:
+        exact = db.get(Task, reference)
+        if exact:
+            return exact
+        if not re.fullmatch(r"[a-f0-9-]{8,36}", reference):
+            raise PluginCapabilityError("Task not found")
+        matches = list(db.scalars(select(Task).where(Task.id.startswith(reference)).limit(2)))
+        if not matches:
+            raise PluginCapabilityError("Task not found")
+        if len(matches) != 1:
+            raise PluginCapabilityError("Task reference is ambiguous")
+        return matches[0]
+
+    def _task_view(self, task: Task, task_ids: list[str]) -> dict[str, Any]:
+        return {"id": task.id, "ref": self._short_task_reference(task.id, task_ids), "kind": task.kind, "repository": task.repository, "number": task.number, "status": task.status, "created": task.created, "updated": task.updated, "title": task.data.get("title") or task.data.get("summary") or ""}
 
     def _task_read(self, action: str, params: dict[str, Any]) -> Any:
         with self.sessions() as db:
@@ -579,13 +602,13 @@ class PluginCapabilityBroker:
                 return {"status": "ok", "counts": {"running": sum(row.status == "running" for row in rows), "waiting_for_owner": sum(row.status == "waiting_for_owner" for row in rows), "failed": sum(row.status.startswith("failed_") for row in rows)}}
             if action == "list":
                 limit = min(max(int(params.get("limit", 20)), 1), 100)
-                return [self._task_view(row) for row in db.scalars(select(Task).order_by(Task.created.desc()).limit(limit))]
+                task_ids = list(db.scalars(select(Task.id)))
+                return [self._task_view(row, task_ids) for row in db.scalars(select(Task).order_by(Task.created.desc()).limit(limit))]
             if action == "get":
-                row = db.get(Task, str(params.get("task_id", "")))
-                if not row:
-                    raise PluginCapabilityError("Task not found")
+                row = self._resolve_task(db, str(params.get("task_id", "")))
+                task_ids = list(db.scalars(select(Task.id)))
                 timeline = list(db.scalars(select(Timeline).where(Timeline.task_id == row.id).order_by(Timeline.timestamp)))
-                return {**self._task_view(row), "summary": row.data.get("summary", ""), "timeline": [{"timestamp": item.timestamp, "kind": item.kind, "data": item.data} for item in timeline[-50:]]}
+                return {**self._task_view(row, task_ids), "summary": row.data.get("summary", ""), "timeline": [{"timestamp": item.timestamp, "kind": item.kind, "data": item.data} for item in timeline[-50:]]}
         raise PluginCapabilityError("Unsupported task.read action")
 
     def _owner_decision(self, action: str, params: dict[str, Any]) -> dict[str, Any]:
@@ -600,20 +623,18 @@ class PluginCapabilityBroker:
         with self.sessions.begin() as db:
             if db.get(Config, replay_id):
                 raise PluginCapabilityError("Owner decision replay rejected")
-            task = db.get(Task, task_id)
-            if not task:
-                raise PluginCapabilityError("Task not found")
+            task = self._resolve_task(db, task_id)
             if task.status != "waiting_for_owner":
                 raise PluginCapabilityError("Task is not waiting for owner")
             normalized = owner_action(decision_action, decision_action)
             task.status = "queued"
             task.data = {**task.data, "owner_decision": f"Plugin decision: {normalized}", "owner_decision_action": normalized, "owner_decision_source": self.plugin_id}
-            db.add(Timeline(task_id=task_id, kind="owner_decision", data={"action": normalized, "source": self.plugin_id}))
-            db.add(Config(id=replay_id, data={"created": time.time(), "task_id": task_id, "action": normalized}))
+            db.add(Timeline(task_id=task.id, kind="owner_decision", data={"action": normalized, "source": self.plugin_id}))
+            db.add(Config(id=replay_id, data={"created": time.time(), "task_id": task.id, "action": normalized}))
         return {"status": "queued", "action": normalized}
 
 
-def make_event(event: str, task: Task | None = None, data: dict[str, Any] | None = None) -> PluginEvent:
+def make_event(event: str, task: Task | None = None, data: dict[str, Any] | None = None, task_ref: str | None = None) -> PluginEvent:
     safe_data = dict(data or {})
     for key in list(safe_data):
         if any(word in key.lower() for word in ("secret", "token", "password", "prompt", "private_key", "credential")):
@@ -623,7 +644,7 @@ def make_event(event: str, task: Task | None = None, data: dict[str, Any] | None
         event_id="evt_" + uuid.uuid4().hex,
         timestamp=datetime.now(UTC).isoformat(),
         repository=task.repository if task else None,
-        task={"id": task.id, "kind": task.kind, "number": task.number, "status": task.status, "title": task.data.get("title") or task.data.get("summary") or ""} if task else None,
+        task={"id": task.id, "ref": task_ref or task.id[:8], "kind": task.kind, "number": task.number, "status": task.status, "title": task.data.get("title") or task.data.get("summary") or ""} if task else None,
         data=safe_data,
     )
 

@@ -432,6 +432,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except (PluginError, PluginPackageError) as error:
             raise HTTPException(422, str(error)) from error
 
+    @api.post("/plugins/{plugin_id}/reload")
+    async def plugin_reload(plugin_id: str):
+        try:
+            return await plugin_manager.reload(plugin_id)
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(422, str(error)) from error
+
+    @api.get("/plugins/{plugin_id}/readme")
+    def plugin_readme(plugin_id: str):
+        try:
+            return {"content": plugin_manager.readme(plugin_id)}
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(404, str(error)) from error
+
     @api.delete("/plugins/{plugin_id}", status_code=204)
     async def plugin_uninstall(plugin_id: str):
         try:
