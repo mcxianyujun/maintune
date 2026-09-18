@@ -274,6 +274,7 @@ class PluginManager:
             "name": manifest.name,
             "version": manifest.version,
             "publisher": manifest.publisher,
+            "license": manifest.license,
             "description": manifest.description,
             "api_version": manifest.api_version,
             "capabilities": manifest.capabilities,

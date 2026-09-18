@@ -84,7 +84,7 @@ export type Task = {
 };
 export type PluginConfigField = { type: "string" | "boolean" | "integer" | "select" | "string_list" | "secret"; title: string; description: string; required: boolean; default: unknown; options: string[] };
 export type Plugin = {
-  id: string; name: string; version: string; publisher: string; description: string; api_version: number;
+  id: string; name: string; version: string; publisher: string; license: string; description: string; api_version: number;
   capabilities: string[]; config_schema: Record<string, PluginConfigField>; config: Record<string, unknown>;
   enabled: boolean; runtime_status: "running" | "stopped" | "error"; error: string;
   connection_status: "connected" | "disconnected"; connected_instance: string; last_heartbeat: number | null;

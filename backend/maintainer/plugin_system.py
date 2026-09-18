@@ -83,6 +83,7 @@ class PluginManifest(BaseModel):
     version: str
     api_version: int = Field(ge=1, le=1000)
     publisher: str = Field(min_length=1, max_length=100)
+    license: str = Field(default="", max_length=100, pattern=r"^[A-Za-z0-9][A-Za-z0-9 .+()/-]{0,99}$")
     description: str = Field(default="", max_length=500)
     maintune: MaintuneCompatibility
     capabilities: list[Literal["repository.read", "task.read", "event.subscribe", "owner_decision.submit", "plugin.log", "plugin.health"]] = Field(default_factory=list, max_length=32)

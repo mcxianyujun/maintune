@@ -27,6 +27,7 @@ name: Test Plugin
 version: 0.1.0-dev
 api_version: 1
 publisher: mcxianyujun
+license: MIT
 description: External test plugin
 maintune:
   min_version: 0.1.0
@@ -115,6 +116,7 @@ def test_manifest_parser_and_schema(tmp_path):
     path.write_text(MANIFEST, encoding="utf-8")
     manifest = load_manifest(path)
     assert manifest.id == "official.test-plugin"
+    assert manifest.license == "MIT"
     assert manifest.config["bridge_token"].type == "secret"
     assert parse_manifest_yaml(MANIFEST)["maintune"]["min_version"] == "0.1.0"
 

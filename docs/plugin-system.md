@@ -17,7 +17,7 @@ src/<python package>/...
 icon.webp                 # optional
 ```
 
-The manifest declares identity, publisher, version, minimum Maintune version,
+The manifest declares identity, publisher, license, version, minimum Maintune version,
 Plugin API version, entrypoint, capabilities, and typed configuration. Supported
 configuration types are `string`, `boolean`, `integer`, `select`, `string_list`,
 and `secret`. Secret values are encrypted with the Maintune Vault and are only

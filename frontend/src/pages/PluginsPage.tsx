@@ -48,7 +48,7 @@ export function PluginsPage({ c }: { c: ConsoleState }) {
           <span className={`badge ${plugin.connection_status === "connected" ? "completed" : "pending"}`}>{t(`plugins.connection.${plugin.connection_status}` as "plugins.connection.connected")}</span>
         </div>
         <p className="plugin-description">{plugin.description}</p>
-        <div className="plugin-meta"><span>v{plugin.version}</span><span>{plugin.publisher}</span><span>API v{plugin.api_version}</span></div>
+        <div className="plugin-meta"><span>v{plugin.version}</span><span>{plugin.publisher}</span>{plugin.license && <span>{plugin.license}</span>}<span>API v{plugin.api_version}</span></div>
         {plugin.error && <div className="alert error">{plugin.error}</div>}
         <div className="plugin-actions">
           {plugin.has_readme && <button className="secondary" onClick={() => openReadme(plugin)}>{t("plugins.docs")}</button>}
