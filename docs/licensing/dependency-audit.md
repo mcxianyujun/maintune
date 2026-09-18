@@ -1,7 +1,8 @@
 # Dependency license audit
 
-Audit date: 2026-09-16  
-Target: `v0.1.0-preview.1` release candidate
+Audit date: 2026-09-18
+
+Target: `v0.1.0-preview.2` release candidate
 
 ## Result
 
@@ -27,7 +28,7 @@ This report records metadata and compatibility risk; it is not legal advice.
 
 ## Evidence
 
-- Python lock: 142 pinned distributions inspected from `requirements.lock`; the final image report contains 146 installed distributions including Maintune and build/runtime support packages.
+- Python lock: 142 pinned distributions inspected from `requirements.lock`; the fresh release environment report contains 147 installed distributions including Maintune and build/runtime support packages.
 - Frontend lock: all installed packages inspected with pnpm's license report.
 - OpenHands SDK repository declares MIT, but its SDK requirement includes `lmnr`, whose requirement includes the proprietary package above.
 - Metadata without an explicit license was also observed for `agent-client-protocol`, `openhands-sdk`, and `socksio`; OpenHands was cross-checked against its official MIT repository. The remaining metadata gaps should be resolved in the final NOTICE/SBOM before release.
@@ -47,4 +48,4 @@ No supported minimal install, telemetry extra, or OpenHands subpackage was found
 
 ## Scope and next check
 
-Repeat this audit from the exact locally built release container and retain the dependency report with release-candidate evidence. A source Release Bundle and a prebuilt image have different redistribution surfaces. This blocker applies to a public prebuilt image, which is **not provided in v0.1.0-preview.1**; it no longer blocks the source/local-build Preview. Restoring GHCR distribution requires an upstream packaging change or explicit redistribution permission.
+The exact release container is rebuilt and checked by the public `main` CI before the tag is published, and its CycloneDX SBOM is retained with the release evidence. A source Release Bundle and a prebuilt image have different redistribution surfaces. This blocker applies to a public prebuilt image, which is **not provided in v0.1.0-preview.2**; it does not block the source/local-build Preview. Restoring GHCR distribution requires an upstream packaging change or explicit redistribution permission.

@@ -26,7 +26,7 @@ Docker 尚未安装时，可在交互终端加 `--install-docker`。脚本会再
 ```bash
 ./scripts/linux/doctor.sh
 ./scripts/linux/backup.sh
-./scripts/linux/update.sh --version 0.1.0-preview.1
+./scripts/linux/update.sh --version 0.1.0-preview.2
 ./scripts/linux/restore.sh --backup /path/to/backup
 ```
 

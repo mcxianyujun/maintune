@@ -13,7 +13,7 @@ The installer creates `.env`, builds locally, runs `pip check`, starts the servi
 ```powershell
 .\scripts\windows\doctor.ps1
 .\scripts\windows\backup.ps1
-.\scripts\windows\update.ps1 -Version 0.1.0-preview.1
+.\scripts\windows\update.ps1 -Version 0.1.0-preview.2
 .\scripts\windows\restore.ps1 -BackupPath C:\path\to\backup
 ```
 

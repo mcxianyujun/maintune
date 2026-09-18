@@ -3,11 +3,11 @@ services:
     build:
       context: .
       args:
-        APP_VERSION: ${MAINTAINER_VERSION:-0.1.0-preview.1}
+        APP_VERSION: ${MAINTAINER_VERSION:-0.1.0-preview.2}
         HTTP_PROXY: ${HTTP_PROXY:-}
         HTTPS_PROXY: ${HTTPS_PROXY:-}
         NO_PROXY: ${NO_PROXY:-}
-    image: ${MAINTAINER_IMAGE_NAME:-ai-maintainer}:${MAINTAINER_VERSION:-0.1.0-preview.1}
+    image: ${MAINTAINER_IMAGE_NAME:-ai-maintainer}:${MAINTAINER_VERSION:-0.1.0-preview.2}
     restart: unless-stopped
     init: true
     env_file: ${MAINTAINER_ENV_FILE:-.env}

@@ -2,7 +2,7 @@
   "name": "maintune-ui",
   "description": "Maintune web console",
   "private": true,
-  "version": "0.1.0-preview.1",
+  "version": "0.1.0-preview.2",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@11.19.0",
   "type": "module",

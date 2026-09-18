@@ -16,7 +16,7 @@ During a local Docker build, dependency artifacts are obtained from their
 official package sources according to requirements.lock.
 
 No official or externally sourced Luo Tianyi artwork is included in
-v0.1.0-preview.1. Project-authored or project-generated Luo Tianyi derivative
+v0.1.0-preview.2. Project-authored or project-generated Luo Tianyi derivative
 visual assets are licensed, only to the extent of rights owned or controlled
 by the project author, under Creative Commons Attribution-NonCommercial-
 ShareAlike 4.0 International (CC BY-NC-SA 4.0). See

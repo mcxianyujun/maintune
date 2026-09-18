@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = '0.1.0-preview.1',
+    [string]$Version = '0.1.0-preview.2',
     [ValidateRange(1,65535)][int]$Port = 8000,
     [string]$InstallDirectory = '',
     [string]$DataDirectory = '',

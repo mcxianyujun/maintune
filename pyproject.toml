@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maintune"
-version = "0.1.0-preview.1"
+version = "0.1.0-preview.2"
 description = "A self-hosted autonomous maintainer for GitHub."
 requires-python = ">=3.12"
 dependencies = [

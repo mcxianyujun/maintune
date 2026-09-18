@@ -1,9 +1,12 @@
-# v0.1.0-preview.1 Preview Release
+# v0.1.0-preview.2 Preview Release
 
 Maintune 是面向 GitHub 仓库的自托管维护代理。它已经能把 Issue 分析、受控代码修改、测试、独立审核、PR 审核与确定性自动合并串成可追踪闭环，并提供以 `#66CCFF` 为主色的天依风格默认界面、九步 Setup Wizard 和部署运维工具。
 
 ## 已验证
 
+- Plugin API v1、本地 `.mtp` 插件包、capability 权限控制和加密插件 Secret；
+- 插件 enable / disable / reload、README 安全查看、ACK 与 replay protection；
+- AstrBot Bridge 外置插件的通知、查询和结构化 Owner Decision 闭环；
 - GitHub Issue → PR → Review → Merge 基础闭环；
 - 外部贡献者 PR 的 Request Changes → synchronize → re-review → Approve；
 - Controller/Policy 执行 GitHub 写操作，模型只提供建议；
@@ -22,6 +25,8 @@ Maintune 是面向 GitHub 仓库的自托管维护代理。它已经能把 Issue
 - Windows 11 脚本已经过静态与流程检查，Docker Desktop fresh-install 的最终人工验收尚未闭环；
 - **不提供预构建 GHCR 镜像。** 当前版本通过源码 Release Bundle 在用户机器本地构建，以避免重新分发许可边界尚未解决的传递 Runtime 工件；
 - 不支持完整离线安装。
+
+本版本的完整变更见 [v0.1.0-preview.2 Release Notes](releases/v0.1.0-preview.2.md)。
 
 ## 默认视觉与素材
 

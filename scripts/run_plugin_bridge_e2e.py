@@ -32,7 +32,7 @@ async def main(mtp: Path, astrbot_plugin: Path) -> None:
         root = Path(temporary)
         engine, sessions = database(f"sqlite:///{root / 'app.db'}")
         vault = Vault(Fernet.generate_key().decode())
-        manager = PluginManager(root / "plugins", "0.1.0-preview.1", sessions, vault)
+        manager = PluginManager(root / "plugins", "0.1.0-preview.2", sessions, vault)
         inbox = manager.packages.inbox / mtp.name
         inbox.write_bytes(mtp.read_bytes())
         installed = manager.install(mtp.name)

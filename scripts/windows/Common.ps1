@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$script:DefaultVersion = '0.1.0-preview.1'
+$script:DefaultVersion = '0.1.0-preview.2'
 $script:DefaultRepository = 'mcxianyujun/maintune'
 
 function Stop-WithError([string]$Message) { throw $Message }

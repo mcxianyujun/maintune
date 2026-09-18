@@ -1,9 +1,9 @@
 {
   "name": "Maintune",
-  "version": "0.1.0-preview.1",
+  "version": "0.1.0-preview.2",
   "schema_version": 4,
   "install_mode": "local-build",
-  "image": "ai-maintainer:0.1.0-preview.1",
+  "image": "ai-maintainer:0.1.0-preview.2",
   "python": "3.12",
   "openhands_sdk": "1.47.0",
   "prebuilt_container": false,

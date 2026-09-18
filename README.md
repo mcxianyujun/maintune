@@ -6,7 +6,7 @@ Maintune is currently in Preview.
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-A self-hosted GitHub repository maintenance console. **v0.1.0-preview.1** receives Issue and Pull Request events through a GitHub App, asks bounded Agents for analysis or code review, and leaves every GitHub write to the Controller and deterministic Policy.
+A self-hosted GitHub repository maintenance console. **v0.1.0-preview.2** receives Issue and Pull Request events through a GitHub App, asks bounded Agents for analysis or code review, and leaves every GitHub write to the Controller and deterministic Policy.
 
 ## Preview status
 
@@ -16,6 +16,8 @@ A self-hosted GitHub repository maintenance console. **v0.1.0-preview.1** receiv
 - OpenAI-compatible models, OpenHands SDK Runtime, and Local or Shipyard Neo Sandbox.
 - Bilingual `zh-CN` / `en-US` WebUI, Setup Wizard, evidence timeline, usage, diagnostics, and backup workflows.
 - Windows 11, Ubuntu 24.04, and Docker Compose local-build deployment paths.
+- Experimental Plugin API v1 with validated `.mtp` packages, out-of-process lifecycle, capability enforcement, encrypted plugin secrets, and a safe README viewer.
+- Official preview bridges: [Maintune AstrBot Bridge](https://github.com/mcxianyujun/maintune-plugin-astrbot) and [AstrBot Maintune Bridge](https://github.com/mcxianyujun/astrbot-plugin-maintune).
 
 This Preview is intended for maintainers and small teams who can self-host and review automation policy. It does not promise unattended operation, universal automatic fixes, or a stable plugin API.
 
@@ -57,8 +59,8 @@ Open `http://127.0.0.1:8000` and complete the Setup Wizard. Put an HTTPS reverse
 | Windows 11 installer | Available; final Docker Desktop E2E remains a manual verification item |
 | Linux installer | Available; Ubuntu 24.04 is the acceptance target |
 | Docker Compose | Available; images are built locally |
-| Prebuilt GHCR image | **Not provided in v0.1.0-preview.1** |
-| Plugin system | **Experimental**; interfaces may change |
+| Prebuilt GHCR image | **Not provided in v0.1.0-preview.2** |
+| Plugin system | **Experimental**; Plugin API v1 is available, interfaces may still change |
 
 The installer builds on the user's machine and downloads pinned dependencies from their official package sources. Preview requires network access to GitHub, PyPI, and the configured base-image registry and does not provide a fully offline installation path.
 

@@ -50,7 +50,7 @@ class GitHubAppClient:
         return jwt.encode({"iat": now - 60, "exp": now + 540, "iss": str(self.app_id)}, self.private_key, algorithm="RS256")
 
     def client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(base_url=self.api_url + "/", timeout=30, follow_redirects=False, trust_env=False, headers={"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "maintune/0.1.0-preview.1"})
+        return httpx.AsyncClient(base_url=self.api_url + "/", timeout=30, follow_redirects=False, trust_env=False, headers={"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "maintune/0.1.0-preview.2"})
 
     async def installation_token(self, installation_id: int) -> str:
         cached = self._tokens.get(installation_id)

@@ -4,8 +4,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAIRS = ["linux", "windows", "docker-compose", "setup-wizard", "github-app", "sandbox", "upgrade", "backup-restore", "troubleshooting"]
 STABLE_TOKENS = {
-    "linux": ["0.1.0-preview.1", "scripts/linux/install.sh", "Shipyard Neo", "Setup Wizard"],
-    "windows": ["0.1.0-preview.1", "install.ps1", "docker compose", "Setup Wizard"],
+    "linux": ["0.1.0-preview.2", "scripts/linux/install.sh", "Shipyard Neo", "Setup Wizard"],
+    "windows": ["0.1.0-preview.2", "install.ps1", "docker compose", "Setup Wizard"],
     "docker-compose": ["MAINTAINER_ADMIN_TOKEN", "MAINTAINER_ENCRYPTION_KEY", "MAINTAINER_BIND_ADDRESS", "MAINTAINER_PORT", "MAINTAINER_DATA_DIR", "docker compose"],
     "setup-wizard": ["Setup Wizard", "Shipyard Neo"],
     "github-app": ["/webhooks/github", "https://api.github.com"],

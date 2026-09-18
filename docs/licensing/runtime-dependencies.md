@@ -1,6 +1,6 @@
 # Runtime dependencies
 
-Maintune v0.1.0-preview.1 固定使用 OpenHands SDK 1.47.0。该 SDK 使用 MIT 许可证，但当前依赖声明会引入 `lmnr` 0.7.62，后者再声明 `lmnr-claude-code-proxy` 0.1.24。我们没有找到足够明确、可依赖的该特定工件再分发条款。
+Maintune v0.1.0-preview.2 固定使用 OpenHands SDK 1.47.0。该 SDK 使用 MIT 许可证，但当前依赖声明会引入 `lmnr` 0.7.62，后者再声明 `lmnr-claude-code-proxy` 0.1.24。我们没有找到足够明确、可依赖的该特定工件再分发条款。
 
 为避免重新分发一个再分发条款目前不明确的工件，Preview：
 

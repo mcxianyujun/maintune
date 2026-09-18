@@ -28,14 +28,14 @@ jobs:
       - run: python scripts/build_release.py
       - name: Verify source-only bundle
         run: |
-          ! tar -tzf release-dist/ai-maintainer-v0.1.0-preview.1.tar.gz | grep -E '\.(whl|db|sqlite|pem|key|log)$|(^|/)\.env$|lmnr.claude.code.proxy'
+          ! tar -tzf release-dist/maintune-v0.1.0-preview.2.tar.gz | grep -E '\.(whl|db|sqlite|pem|key|log)$|(^|/)\.env$|lmnr.claude.code.proxy'
           sha256sum --check release-dist/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
-          name: ai-maintainer-v0.1.0-preview.1-source-bundle
+          name: maintune-v0.1.0-preview.2-source-bundle
           path: |
-            release-dist/ai-maintainer-v0.1.0-preview.1.tar.gz
-            release-dist/ai-maintainer-v0.1.0-preview.1.zip
+            release-dist/maintune-v0.1.0-preview.2.tar.gz
+            release-dist/maintune-v0.1.0-preview.2.zip
             release-dist/SHA256SUMS
           if-no-files-found: error
           retention-days: 7

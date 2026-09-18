@@ -4,7 +4,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-自托管的 GitHub 仓库维护控制台。**v0.1.0-preview.1** 通过 GitHub App 接收 Issue 与 Pull Request 事件，由受控 Agent 提出修改或审核意见，再由 Controller 与确定性 Policy 执行 GitHub 写操作。
+自托管的 GitHub 仓库维护控制台。**v0.1.0-preview.2** 通过 GitHub App 接收 Issue 与 Pull Request 事件，由受控 Agent 提出修改或审核意见，再由 Controller 与确定性 Policy 执行 GitHub 写操作。
 
 ## Preview 能力
 
@@ -13,6 +13,8 @@
 - OpenAI-compatible 模型、OpenHands SDK Runtime、Local 与 Shipyard Neo Sandbox。
 - Setup Wizard、任务时间线、用量、失败原因、备份与诊断。
 - Windows 11、Ubuntu 24.04 和 Docker Compose 本地构建部署。
+- Experimental Plugin API v1：`.mtp` 本地插件包、进程外生命周期、capability 权限、加密插件 Secret 与安全 README 查看器。
+- 官方 Preview 桥接插件：[Maintune AstrBot Bridge](https://github.com/mcxianyujun/maintune-plugin-astrbot) 与 [AstrBot Maintune Bridge](https://github.com/mcxianyujun/astrbot-plugin-maintune)。
 
 适合愿意自己部署、能审阅自动化策略，并希望试用 Issue → PR → Review → Merge 闭环的个人维护者和小团队。它仍是 Preview，不承诺无人值守运行、所有仓库都能自动修复，或插件 API 已稳定。
 
@@ -54,7 +56,7 @@ docker compose up -d --wait
 | Windows 11 安装器 | Available，真实 Docker Desktop E2E 待人工验证 |
 | Linux 安装器 | Available，Ubuntu 24.04 验收目标 |
 | Docker Compose | Available，本地构建 |
-| 公共预构建容器 | **Not provided in v0.1.0-preview.1** |
+| 公共预构建容器 | **Not provided in v0.1.0-preview.2** |
 
 为避免重新分发一个许可条款目前不够明确的传递 Runtime 工件，Preview 安装器会在用户机器上构建镜像，并从官方包源取得固定版本依赖。安装需要访问 GitHub、PyPI 和基础镜像仓库；Preview 不支持完整离线安装。技术说明见 [Runtime 依赖](docs/licensing/runtime-dependencies.md)。
 

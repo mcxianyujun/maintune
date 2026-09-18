@@ -41,7 +41,7 @@ jobs:
         working-directory: frontend
       - run: cp .env.example .env
       - run: docker compose config --quiet
-      - run: docker build --build-arg APP_VERSION=0.1.0-preview.1 --tag ai-maintainer:ci .
+      - run: docker build --build-arg APP_VERSION=0.1.0-preview.2 --tag ai-maintainer:ci .
       - run: docker run --rm --entrypoint pip ai-maintainer:ci check
       - name: Generate runtime SBOM
         run: docker run --rm -i --entrypoint python ai-maintainer:ci - < scripts/generate_runtime_sbom.py > runtime-sbom.cdx.json

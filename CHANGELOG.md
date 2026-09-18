@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-preview.2 - Plugin API v1
+
+- 新增进程外 Plugin API v1，以及经过校验的本地 `.mtp` 插件包安装流程。
+- 新增插件 enable、disable、reload 生命周期和进程崩溃隔离。
+- 新增 capability 权限模型、加密插件 Secret、命名空间路由与安全 README viewer。
+- 新增事件 ACK、断线重连、去重、Owner Decision 防重放和短任务引用。
+- 重做插件管理卡片、设置对话框和 Running / Connected 状态展示。
+- 通过两个独立外置插件验证 Maintune 与 AstrBot 的双向桥接。
+
+插件接口仍标记为 Experimental。此 Preview 继续采用本地构建分发，不提供公共 GHCR 镜像。
+
 ## 0.1.0-preview.1 - Release candidate
 
 - 首次公开 Preview 的 GitHub Issue / PR 自动维护闭环。

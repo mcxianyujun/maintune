@@ -207,7 +207,7 @@ function App() {
           <RunsPage c={c} />
         </div>
         <footer>
-          Maintune v0.1.0-preview.1 <span>{t("shell.footer")}</span>
+          Maintune v0.1.0-preview.2 <span>{t("shell.footer")}</span>
         </footer>
       </main>
       <ProviderDialog c={c} />

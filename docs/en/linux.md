@@ -12,7 +12,7 @@ The default bind address is `127.0.0.1`. The script creates `.env` with mode 600
 ```bash
 ./scripts/linux/doctor.sh
 ./scripts/linux/backup.sh
-./scripts/linux/update.sh --version 0.1.0-preview.1
+./scripts/linux/update.sh --version 0.1.0-preview.2
 ./scripts/linux/restore.sh --backup /path/to/backup
 ```
 
