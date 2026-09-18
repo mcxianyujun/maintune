@@ -1,10 +1,11 @@
 import asyncio
+import json
 import os
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +16,8 @@ from .db import Agent, Config, ConfigAudit, Outbox, Provider, Repository, Run, T
 from .github import GitHubAppClient, ingest_webhook, verify_signature
 from .providers import OpenAICompatible, openai_compatible_parameters
 from .policy import owner_action
+from .plugin_manager import PluginManager
+from .plugin_system import MAX_MESSAGE_BYTES, PluginError, PluginPackageError
 from .resets import reset_agent, reset_main, reset_model
 from .runtime import DiagnosticRuntime, agent_task
 from .sandboxes import LocalSandbox, ShipyardConnection
@@ -37,6 +40,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     vault = Vault(settings.encryption_key.get_secret_value())
     engine, sessions = database(settings.database_url)
     Path(settings.workspace_root).mkdir(parents=True, exist_ok=True)
+    plugin_manager = PluginManager(Path(settings.plugin_root), __version__, sessions, vault)
     with sessions.begin() as db:
         if not db.get(Config, "general"):
             db.add(Config(id="general", data=GeneralSettings().model_dump()))
@@ -61,16 +65,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             for action in db.scalars(select(Outbox).where(Outbox.status == "executing")):
                 action.status = "unknown"
                 action.error = "Service restarted while external action was executing; reconciliation required"
-        app.state.processor = TaskProcessor(sessions, vault, settings)
+        app.state.processor = TaskProcessor(sessions, vault, settings, event_sink=app.state.plugins.publish_task)
+        await app.state.plugins.start()
         app.state.worker_stop = asyncio.Event()
         app.state.worker = asyncio.create_task(worker_loop(app))
         yield
         app.state.worker_stop.set()
         await app.state.worker
+        await app.state.plugins.stop()
         engine.dispose()
 
     app = FastAPI(title="Maintune", version=__version__, lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings, app.state.sessions, app.state.vault = settings, sessions, vault
+    app.state.plugins = plugin_manager
     app.state.runtime = DiagnosticRuntime()
     app.state.provider_factory = OpenAICompatible
     api = APIRouter(prefix="/api", dependencies=[Depends(authenticate)])
@@ -396,6 +403,70 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             db.add(Timeline(task_id=task_id, kind="owner_decision", data={"decision": body.decision, "action": action}))
         return {"status": "queued", "action": action}
 
+    @api.get("/plugins")
+    def plugins_list():
+        return plugin_manager.list()
+
+    @api.get("/plugins/scan")
+    def plugins_scan():
+        return plugin_manager.scan()
+
+    @api.post("/plugins/install/{filename}", status_code=201)
+    def plugin_install(filename: str):
+        try:
+            return plugin_manager.install(filename)
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(422, str(error)) from error
+
+    @api.post("/plugins/{plugin_id}/enable")
+    async def plugin_enable(plugin_id: str):
+        try:
+            return await plugin_manager.enable(plugin_id)
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(422, str(error)) from error
+
+    @api.post("/plugins/{plugin_id}/disable")
+    async def plugin_disable(plugin_id: str):
+        try:
+            return await plugin_manager.disable(plugin_id)
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(422, str(error)) from error
+
+    @api.post("/plugins/{plugin_id}/reload")
+    async def plugin_reload(plugin_id: str):
+        try:
+            return await plugin_manager.reload(plugin_id)
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(422, str(error)) from error
+
+    @api.get("/plugins/{plugin_id}/readme")
+    def plugin_readme(plugin_id: str):
+        try:
+            return {"content": plugin_manager.readme(plugin_id)}
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(404, str(error)) from error
+
+    @api.delete("/plugins/{plugin_id}", status_code=204)
+    async def plugin_uninstall(plugin_id: str):
+        try:
+            await plugin_manager.uninstall(plugin_id)
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(422, str(error)) from error
+
+    @api.put("/plugins/{plugin_id}/config")
+    def plugin_config(plugin_id: str, body: dict[str, object]):
+        try:
+            return plugin_manager.configure(plugin_id, body)
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(422, str(error)) from error
+
+    @api.post("/plugins/{plugin_id}/secrets/{field_name}/regenerate")
+    def plugin_regenerate_secret(plugin_id: str, field_name: str):
+        try:
+            return {"value": plugin_manager.regenerate_secret(plugin_id, field_name)}
+        except (PluginError, PluginPackageError) as error:
+            raise HTTPException(422, str(error)) from error
+
     @api.post("/tasks/{task_id}/retry")
     def retry_task(task_id: str):
         with sessions.begin() as db:
@@ -704,6 +775,45 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     static = Path(settings.static_dir)
     if (static / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=static / "assets"), name="assets")
+
+    @app.websocket("/api/plugins/{plugin_id}/ws")
+    async def plugin_websocket(websocket: WebSocket, plugin_id: str):
+        await websocket.accept()
+        authenticated = False
+        try:
+            raw = await asyncio.wait_for(websocket.receive_text(), timeout=10)
+            if len(raw.encode("utf-8")) > MAX_MESSAGE_BYTES:
+                await websocket.close(code=1009)
+                return
+            try:
+                first = json.loads(raw)
+            except Exception:
+                await websocket.close(code=1003)
+                return
+            if not await plugin_manager.authenticate_transport(plugin_id, first):
+                await websocket.close(code=1008)
+                return
+            authenticated = True
+            await plugin_manager.connect(plugin_id, websocket, first)
+            while True:
+                raw = await websocket.receive_text()
+                if len(raw.encode("utf-8")) > MAX_MESSAGE_BYTES:
+                    await websocket.close(code=1009)
+                    return
+                try:
+                    message = json.loads(raw)
+                except Exception:
+                    await websocket.send_json({"protocol": "maintune.astrbot.v1", "type": "error", "code": "MALFORMED_MESSAGE"})
+                    continue
+                for response in await plugin_manager.transport_message(plugin_id, message):
+                    await websocket.send_json(response)
+        except (WebSocketDisconnect, TimeoutError):
+            pass
+        except PluginError:
+            if authenticated:
+                await websocket.close(code=1011)
+        finally:
+            await plugin_manager.disconnect(plugin_id, websocket)
 
     # FastAPI 0.141 represents include_router as one catch-all ASGI route.
     # Static mounts must be registered first or the authenticated API router

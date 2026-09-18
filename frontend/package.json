@@ -12,7 +12,8 @@
     "smoke:preview": "node scripts/preview-e2e.cjs",
     "smoke:i18n": "node scripts/i18n-smoke.cjs",
     "smoke:public": "node scripts/public-smoke.cjs",
-    "smoke:production": "node scripts/production-acceptance.cjs"
+    "smoke:production": "node scripts/production-acceptance.cjs",
+    "smoke:plugins": "node scripts/plugin-ui-smoke.cjs"
   },
   "dependencies": {
     "react": "^19.1.0",

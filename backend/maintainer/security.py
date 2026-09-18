@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///data/maintainer.db"
     workspace_root: str = "data/workspaces"
     static_dir: str = "frontend/dist"
+    plugin_root: str = "data/plugins"
 
 
 class Vault:

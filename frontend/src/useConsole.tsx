@@ -6,6 +6,7 @@ import type {
   EmailConfig,
   GitHubConfig,
   Provider,
+  Plugin,
   Repository,
   ResolvedRuntime,
   Run,
@@ -35,6 +36,7 @@ export function useConsole() {
     [email, setEmail] = useState<EmailConfig>(),
     [repositories, setRepositories] = useState<Repository[]>([]),
     [tasks, setTasks] = useState<Task[]>([]);
+  const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [window, setWindow] = useState("24h"),
     [prompt, setPrompt] = useState(""),
     [runAgent, setRunAgent] = useState("main");
@@ -47,7 +49,7 @@ export function useConsole() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus>();
   const [wizardOpen, setWizardOpen] = useState(false);
   async function load() {
-    const [p, a, r, s, b, d, g, e, repos, queued, effective, setup] = await Promise.all([
+    const [p, a, r, s, b, d, g, e, repos, queued, effective, setup, extensions] = await Promise.all([
       api<Provider[]>("/providers"),
       api<Agent[]>("/agents"),
       api<Run[]>("/runs"),
@@ -60,6 +62,7 @@ export function useConsole() {
       api<Task[]>("/tasks"),
       api<Record<string, ResolvedRuntime>>("/runtime-configs"),
       api<SetupStatus>("/setup/status"),
+      api<Plugin[]>("/plugins"),
     ]);
     setProviders(p);
     setAgents(a);
@@ -73,6 +76,7 @@ export function useConsole() {
     setTasks(queued);
     setRuntimeConfigs(effective);
     setSetupStatus(setup);
+    setPlugins(extensions);
     return setup;
   }
   async function act(fn: () => Promise<unknown>, message = "") {
@@ -194,6 +198,8 @@ export function useConsole() {
     setRepositories,
     tasks,
     setTasks,
+    plugins,
+    setPlugins,
     window,
     setWindow,
     prompt,
