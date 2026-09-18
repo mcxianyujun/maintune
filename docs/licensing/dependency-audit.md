@@ -28,7 +28,7 @@ This report records metadata and compatibility risk; it is not legal advice.
 
 ## Evidence
 
-- Python lock: 142 pinned distributions inspected from `requirements.lock`; the fresh release environment report contains 147 installed distributions including Maintune and build/runtime support packages.
+- Python lock: 142 pinned distributions inspected from `requirements.lock`; the successful release-container SBOM contains 146 installed distributions including Maintune and build/runtime support packages.
 - Frontend lock: all installed packages inspected with pnpm's license report.
 - OpenHands SDK repository declares MIT, but its SDK requirement includes `lmnr`, whose requirement includes the proprietary package above.
 - Metadata without an explicit license was also observed for `agent-client-protocol`, `openhands-sdk`, and `socksio`; OpenHands was cross-checked against its official MIT repository. The remaining metadata gaps should be resolved in the final NOTICE/SBOM before release.
