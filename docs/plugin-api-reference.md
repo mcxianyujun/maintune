@@ -26,6 +26,8 @@ Extension names use lowercase ASCII letters, digits, underscore, period and hyph
 
 When `input_schema` is omitted for a Tool, the SDK derives a small JSON Schema from annotated parameters: `str`, `int`, `float`, `bool`, `Literal[...]`, `list[T]`, string-keyed dictionaries, and optional parameters with a default. Complex unions or custom objects require an explicit object schema. Unsupported annotations fail registration rather than silently broadening input.
 
+For Agent Tool calls, Core sends only arguments declared in the Tool's public `input_schema.properties`. Optional arguments the Agent omits are omitted from the request, so the plugin handler can apply its declared defaults. Core Action fields such as `kind`, task identifiers, and runtime metadata are not Tool arguments and are never forwarded through this request. The SDK continues to reject undeclared arguments.
+
 ## Hook catalog
 
 | Hook | Stability | Input/result behavior |
