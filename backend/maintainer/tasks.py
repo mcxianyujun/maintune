@@ -6,7 +6,7 @@ import re
 import time
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from .config import ResolvedAgentConfig, resolve_agent_config, resolve_all_agents
 from .db import Agent, Config, Outbox, Provider, Repository, ReviewFinding, Run, RuntimeSnapshot, Task, Timeline, Usage
@@ -15,6 +15,7 @@ from .notifications import EmailNotifier
 from .policy import MergeEvidence, issue_triage_gate, merge_blockers, owner_action, pull_triage_gate
 from .providers import OpenAICompatible, openai_compatible_parameters
 from .runtime import AgentHardLimitReached, AgentLoopDetected, AgentStepLimitReached, AgentTaskTimeout, ModelRequestTimeout, OpenHandsRuntime, ToolCallTimeout, agent_task, structured_call, tool_call
+from .review_recovery import RecoveryConflict, inspect_remote
 from .sandboxes import LocalSandbox, PluginSandbox, ShipyardSandbox
 from .schemas import IssueAnalysis, ReviewVerdict
 
@@ -157,14 +158,58 @@ class TaskProcessor:
             return row
 
     async def github_action(self, task_id: str, kind: str, action_key: str, data: dict, perform):
+        if kind == "pr_review":
+            with self.sessions() as db:
+                previous = list(db.scalars(select(Outbox).where(Outbox.task_id == task_id, Outbox.kind == kind)))
+                if any(item.action_key != action_key and (item.status in {"unknown", "executing", "reconciling"}
+                       or (item.status == "pending" and item.data.get("recovery"))) for item in previous):
+                    raise RecoveryConflict("A previous review action requires reconciliation")
         row = self.reserve(task_id, kind, action_key, data)
+        if kind == "pr_review" and row.data.get("review_request") and row.data["review_request"] != data.get("review_request"):
+            raise RecoveryConflict("Reserved review content changed; do not replay it")
         if row.status == "completed":
             return {"id": row.external_id, "html_url": row.external_url}
-        if row.status in {"unknown", "executing"}:
+        if row.status in {"unknown", "executing", "reconciling"}:
             raise RuntimeError("GitHub action outcome unknown; reconcile before retry")
+        if kind == "pr_review" and row.data.get("review_request") != data.get("review_request"):
+            raise RecoveryConflict("Reserved review content changed; do not replay it")
+        if kind == "pr_review" and row.data.get("recovery", {}).get("retry_authorized"):
+            with self.sessions() as db:
+                task = db.get(Task, task_id)
+                repository = db.get(Repository, task.repository)
+                if not repository or not repository.data.get("enabled", False) or not repository.data.get("auto_review_prs", False):
+                    raise RecoveryConflict("Repository review access is disabled")
+                if (task.data.get("head_sha") != row.data["head_sha"] or not repository.installation_id
+                        or task.data.get("installation_id", repository.installation_id) != repository.installation_id):
+                    raise RecoveryConflict("Task head or repository installation changed")
+                item = {"repository": task.repository, "number": task.number, "head_sha": row.data["head_sha"],
+                        "installation": task.data.get("installation_id") or repository.installation_id,
+                        "payload": row.data["review_request"]}
+            match = await inspect_remote(self.app_client(), item)
+            with self.sessions() as db:
+                task = db.get(Task, task_id)
+                repository = db.get(Repository, task.repository)
+                expected_installation = row.data["recovery"]["installation_id"]
+                if (not repository or not repository.data.get("enabled", False) or not repository.data.get("auto_review_prs", False)
+                        or repository.installation_id != expected_installation
+                        or task.data.get("installation_id", expected_installation) != expected_installation
+                        or task.data.get("head_sha") != row.data["head_sha"]):
+                    raise RecoveryConflict("Review access changed during the final reconciliation check")
+            if match:
+                with self.sessions.begin() as db:
+                    changed = db.execute(update(Outbox).where(Outbox.id == row.id, Outbox.status == "pending",
+                        Outbox.attempts == row.attempts).values(status="completed", external_id=str(match["id"]),
+                        external_url=match["html_url"])).rowcount
+                    if changed != 1:
+                        raise RecoveryConflict("Review action was claimed concurrently")
+                    self.event(db, task_id, "github_review_reconciled", {"action_id": row.id, "source": "before_retry", "review_url": match["html_url"]})
+                return match
         with self.sessions.begin() as db:
-            live = db.get(Outbox, row.id)
-            live.status, live.attempts = "executing", live.attempts + 1
+            changed = db.execute(update(Outbox).where(Outbox.id == row.id, Outbox.status == "pending",
+                Outbox.attempts == row.attempts).values(status="executing", attempts=row.attempts + 1,
+                data={**row.data, "attempt_started_at": time.time()})).rowcount
+            if changed != 1:
+                raise RuntimeError("GitHub action was claimed concurrently")
         try:
             result = await perform()
         except Exception:
@@ -660,7 +705,8 @@ class TaskProcessor:
         if event == "APPROVE" and ci_failures:
             event = "COMMENT"
             body_lines.append("Approval held because CI failed.")
-        review = await self.at_stage("github_review", self.github_action(task_id, "pr_review", f"pr-review:{repo}:{number}:{head_sha}:{event}", {"head_sha": head_sha, "event": event}, lambda: github.review(installation_id, repo, number, head_sha, event, "\n\n".join(body_lines), comments)))
+        request = {"commit_id": head_sha, "event": event, "body": "\n\n".join(body_lines), "comments": comments}
+        review = await self.at_stage("github_review", self.github_action(task_id, "pr_review", f"pr-review:{repo}:{number}:{head_sha}:{event}", {"head_sha": head_sha, "event": event, "review_request": request}, lambda: github.review(installation_id, repo, number, head_sha, event, request["body"], comments)))
         with self.sessions.begin() as db:
             for fingerprint, finding in new_findings:
                 db.add(ReviewFinding(task_id=task_id, repository=repo, number=number, fingerprint=fingerprint, head_sha=head_sha, data=finding.model_dump()))
