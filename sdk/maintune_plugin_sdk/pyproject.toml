@@ -10,6 +10,15 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 authors = [{ name = "mcxianyujun" }]
+keywords = ["maintune", "plugin", "sdk"]
+
+[project.urls]
+Homepage = "https://github.com/mcxianyujun/maintune"
+Documentation = "https://github.com/mcxianyujun/maintune/blob/main/docs/plugin-api-v2.md"
+Repository = "https://github.com/mcxianyujun/maintune"
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
 
 [tool.setuptools]
 packages = ["maintune_plugin_sdk"]

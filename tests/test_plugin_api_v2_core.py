@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from cryptography.fernet import Fernet
+from pydantic import BaseModel
 
 from maintainer.db import database
 from maintainer.db import Config, Outbox, Repository, Task, Timeline
@@ -13,6 +14,7 @@ from maintainer.plugin_manager import PluginManager
 from maintainer.plugin_api_v2 import PluginRegistry
 from maintainer.plugin_system import PluginPackageError
 from maintainer.security import Vault
+from maintainer.runtime import public_plugin_tool_arguments
 from maintainer.tasks import TaskProcessor
 
 
@@ -64,6 +66,21 @@ def test_v2_manifest_and_isolated_tool_runtime(tmp_path):
         view = await manager.enable(MANIFEST["id"])
         assert view["runtime_status"] == "running"
         assert view["registrations"][0]["identifier"] == "example.v2-test/search"
+        class InternalAction(BaseModel):
+            kind: str
+            query: str
+            task_id: str
+            runtime_metadata: dict
+            optional_field: str | None = None
+
+        action = InternalAction(kind="PluginAction_internal", query="hello", task_id="private-task", runtime_metadata={"private": "metadata"})
+        public_fields = frozenset(manager.registry.get("example.v2-test/search").metadata["input_schema"]["properties"])
+        public_arguments = public_plugin_tool_arguments(action, public_fields)
+        assert public_arguments == {"query": "hello"}
+        assert public_plugin_tool_arguments(action, public_fields | {"optional_field"}) == {"query": "hello"}
+        assert await manager.invoke_tool("example.v2-test/search", public_arguments) == "result: hello"
+        with pytest.raises(Exception):
+            await manager.invoke_tool("example.v2-test/search", {**public_arguments, "kind": action.kind})
         assert manager.enable_recommended_tools(MANIFEST["id"]) == {"code_worker": ["example.v2-test/search"]}
         assert [tool.identifier for tool in manager.agent_tools("code_worker")] == ["example.v2-test/search"]
         assert manager.agent_tools("issue_analyzer") == []

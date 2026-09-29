@@ -61,6 +61,11 @@ async def tool_call(awaitable, timeout: float):
         raise ToolCallTimeout(f"Tool call exceeded {timeout} seconds") from error
 
 
+def public_plugin_tool_arguments(action: BaseModel, property_names: frozenset[str]) -> dict:
+    """Serialize only fields declared by the plugin's public Tool input schema."""
+    return action.model_dump(include=property_names, exclude_unset=True)
+
+
 async def agent_task(awaitable, timeout: float):
     try:
         return await asyncio.wait_for(awaitable, timeout=timeout)
@@ -224,7 +229,9 @@ class OpenHandsRuntime:
             content: str = Field(max_length=1_000_000)
 
         class Executor(ToolExecutor):
-            def __init__(self, kind): self.kind = kind
+            def __init__(self, kind, public_fields=frozenset()):
+                self.kind = kind
+                self.public_fields = public_fields
             def __call__(self, action, conversation=None):
                 safe = action.model_dump(exclude={"content"})
                 budget_arguments = action.model_dump()
@@ -242,7 +249,8 @@ class OpenHandsRuntime:
                         if plugin_manager is None:
                             raise RuntimeError("Plugin manager is unavailable")
                         identifier = self.kind.removeprefix("plugin:")
-                        future = asyncio.run_coroutine_threadsafe(plugin_manager.invoke_tool(identifier, action.model_dump()), core_loop)
+                        arguments = public_plugin_tool_arguments(action, self.public_fields)
+                        future = asyncio.run_coroutine_threadsafe(plugin_manager.invoke_tool(identifier, arguments), core_loop)
                         try:
                             plugin_result = future.result(timeout=tool_timeout)
                         except Exception:
@@ -285,13 +293,13 @@ class OpenHandsRuntime:
                 default = ... if field_name in schema.get("required", []) else field_schema.get("default", None)
                 fields[field_name] = (python_type, Field(default=default, description=field_schema.get("description", "")))
             action_class = create_model("PluginAction_" + hashlib.sha256(identifier.encode()).hexdigest()[:12], __base__=Action, **fields)
-            def make_tool(plugin_identifier, plugin_action, plugin_description):
+            def make_tool(plugin_identifier, plugin_action, plugin_description, public_fields):
                 class PluginTool(ToolDefinition[plugin_action, SandboxObservation]):
                     @classmethod
                     def create(cls, conv_state, **params):
-                        return [cls(description=plugin_description, action_type=plugin_action, observation_type=SandboxObservation, executor=Executor("plugin:" + plugin_identifier))]
+                        return [cls(description=plugin_description, action_type=plugin_action, observation_type=SandboxObservation, executor=Executor("plugin:" + plugin_identifier, public_fields))]
                 return PluginTool
-            PluginTool = make_tool(identifier, action_class, registration["description"])
+            PluginTool = make_tool(identifier, action_class, registration["description"], frozenset(schema.get("properties", {})))
             tool_name = "maintune_plugin_" + hashlib.sha256(identifier.encode()).hexdigest()[:16]
             PluginTool.name = tool_name
             register_tool(tool_name, PluginTool)

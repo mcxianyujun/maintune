@@ -1,10 +1,11 @@
-# Maintune Plugin API v2 — developer guide (in progress)
+# Maintune Plugin API v2 — developer guide
 
-Plugin API v2 is being developed for `v0.1.0-preview.3`. This document describes
-the public shape under development. **It is not a declaration that the Preview 3
-release gate has passed.** Check the tests and release report before relying on
-an integration described below. The [v1 API](plugin-system.md) remains supported
-as Legacy, with no announced removal date.
+Plugin API v2 was released in `v0.1.0-preview.3`. This guide documents that
+preview contract; Stable preparation may tighten documentation and packaging
+without promising unimplemented extension points. The
+[v1 API](plugin-system.md) remains supported as Legacy, with no announced
+removal date. See the [Python API reference](plugin-api-reference.md) for
+signatures, Core calls, and compatibility boundaries.
 
 ## Scope and trust
 
@@ -236,8 +237,6 @@ AstrBot or QQ server. V1 remains Legacy with no removal date, and Core should
 serve it through a compatibility path rather than require business-code
 migration.
 
-Preview 3 is ready only after the broader automated and real integration
-gates pass: v1 bridge, v2 AnySearch, an external example plugin, MCP review
-compatibility, both provider paths, migration/upgrade, and the Core test and
-deployment checks. Until that evidence exists, this guide describes an API
-under development, not a released guarantee.
+Preview 3 passed its release gates. The Stable preparation roadmap is tracked
+in `.codex/v0.1.0-stable-goals.md`; Plugin API v2 remains a preview-stage API
+until Stable compatibility gates and public developer artifacts are complete.
