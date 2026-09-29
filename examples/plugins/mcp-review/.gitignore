@@ -1,0 +1,10 @@
+.local/
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+dist/
+.private/
+*.db
+*.db-*
+.env

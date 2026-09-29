@@ -1,0 +1,37 @@
+name: MCP review example
+
+on:
+  pull_request:
+    paths:
+      - 'examples/plugins/mcp-review/**'
+      - 'backend/**'
+      - 'sdk/**'
+      - '.github/workflows/mcp-review-example.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'examples/plugins/mcp-review/**'
+      - 'backend/**'
+      - 'sdk/**'
+      - '.github/workflows/mcp-review-example.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: examples/plugins/mcp-review/requirements-test.lock
+      - run: python -m pip install -r requirements-test.lock
+        working-directory: examples/plugins/mcp-review
+      - run: python -m pip check
+      - run: python -m pytest tests -q
+        working-directory: examples/plugins/mcp-review
+      - run: python build_mtp.py
+        working-directory: examples/plugins/mcp-review
