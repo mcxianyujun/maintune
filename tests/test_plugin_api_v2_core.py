@@ -83,6 +83,36 @@ def test_v2_manifest_and_isolated_tool_runtime(tmp_path):
         engine.dispose()
 
 
+@pytest.mark.parametrize("size", [80 * 1024, 1024 * 1024 - 8192])
+def test_isolated_response_above_default_stream_limit_keeps_channel_usable(tmp_path, size):
+    engine, sessions = database(f"sqlite:///{tmp_path / 'large-response.db'}")
+    manager = PluginManager(tmp_path / "plugins", "0.1.0-preview.3", sessions, Vault(Fernet.generate_key().decode()))
+    archive = manager.packages.inbox / "large-response.mtp"
+    source = '''
+def read(size: int) -> str:
+    return "x" * size
+
+def register(api):
+    api.register_tool("read", read, description="Return a bounded test response")
+'''
+    package(archive, source=source)
+    manager.install(archive.name)
+
+    async def scenario():
+        try:
+            await manager.enable(MANIFEST["id"])
+            result = await manager.invoke_tool("example.v2-test/read", {"size": size})
+            assert result == "x" * size
+            assert await manager.invoke_tool("example.v2-test/read", {"size": 8}) == "x" * 8
+        finally:
+            await manager.stop()
+
+    try:
+        asyncio.run(scenario())
+    finally:
+        engine.dispose()
+
+
 def test_v2_package_rejects_legacy_capability_list(tmp_path):
     engine, sessions = database(f"sqlite:///{tmp_path / 'plugin-v2.db'}")
     manager = PluginManager(tmp_path / "plugins", "0.1.0-preview.3", sessions, Vault(Fernet.generate_key().decode()))

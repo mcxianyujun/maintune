@@ -533,6 +533,7 @@ class PluginProcess:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=child_env,
+            limit=MAX_MESSAGE_BYTES,
         )
         self.reader_task = asyncio.create_task(self._reader())
         self.stderr_task = asyncio.create_task(self._stderr())
