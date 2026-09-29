@@ -6,7 +6,7 @@ This is the shortest supported path from a new Python project to an installable 
 
 - Python 3.12 or later for development and the isolated plugin runtime.
 - A Maintune instance with Plugin API v2 (`v0.1.0-preview.3` or newer).
-- A compatible SDK. Build a wheel from `sdk/maintune_plugin_sdk` with `python -m pip wheel --no-deps --wheel-dir dist .` and install it in a clean development environment. The separate Git repository and PyPI package must not be assumed available until their publication is verified.
+- A compatible SDK. Install the public Git repository with `python -m pip install git+https://github.com/mcxianyujun/maintune-plugin-sdk.git`, or build a wheel from `sdk/maintune_plugin_sdk` with `python -m pip wheel --no-deps --wheel-dir dist .`. There is no PyPI publication yet.
 
 Do not import `maintainer.*`, open Maintune's database, or copy host credentials into your plugin. A plugin installed by an administrator is trusted code, but Core still owns GitHub policy and secret storage.
 

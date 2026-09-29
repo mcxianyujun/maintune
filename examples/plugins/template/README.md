@@ -7,7 +7,7 @@
 1. 将此目录内容复制到新仓库。
 2. 修改 `manifest.yaml` 中的 `id`、`name`、`publisher`、版本和描述；将 `yourname` 替换为自己的发布者标识。
 3. 按需修改 `src/main.py`，保留 `register(api)` 作为入口。Tool 可以用首个 `context` 参数访问插件上下文，其余类型注解用于生成输入 schema。
-4. 先在 Maintune Core 源码的 `sdk/maintune_plugin_sdk` 构建并安装兼容的 SDK wheel（`python -m pip wheel --no-deps --wheel-dir dist .`）；独立 SDK 仓库公开后也可从该仓库安装。再运行离线测试：
+4. 先安装公开 SDK：`python -m pip install git+https://github.com/mcxianyujun/maintune-plugin-sdk.git`。也可在 Maintune Core 源码的 `sdk/maintune_plugin_sdk` 构建并安装兼容的 wheel。再运行离线测试：
 
    ```sh
    python -m unittest discover -s tests -v
@@ -35,6 +35,6 @@ This is a minimal Python project that can be copied into its own GitHub Template
 
 Copy this directory, then edit `id`, `name`, `publisher`, version, and description in `manifest.yaml`. Replace `yourname` with your publisher identifier. Implement extensions in `src/main.py` and keep `register(api)` as the entrypoint. A Tool may accept `context` first; annotations on the other parameters define its generated input schema.
 
-First build and install a compatible SDK wheel from Maintune's `sdk/maintune_plugin_sdk` directory with `python -m pip wheel --no-deps --wheel-dir dist .`. Once the independent SDK repository is published, it can also be installed from that repository. Run offline checks with `python -m unittest discover -s tests -v`, then build an installable package with `python build_mtp.py`. The default output is `dist/hello-plugin.mtp`; an alternate output path can be passed as an argument. The builder includes only the explicit package files, so tests, caches, and local data stay out of the archive.
+Install the public SDK with `python -m pip install git+https://github.com/mcxianyujun/maintune-plugin-sdk.git`. Alternatively, build a compatible wheel from Maintune's `sdk/maintune_plugin_sdk` directory with `python -m pip wheel --no-deps --wheel-dir dist .`. Run offline checks with `python -m unittest discover -s tests -v`, then build an installable package with `python build_mtp.py`. The default output is `dist/hello-plugin.mtp`; an alternate output path can be passed as an argument. The builder includes only the explicit package files, so tests, caches, and local data stay out of the archive.
 
 The public SDK requires Python 3.12 or newer. Maintune stages the SDK into the isolated plugin environment. This template has no third-party runtime dependencies. The MIT license names mcxianyujun as its initial copyright holder; update it when publishing your own derivative.
