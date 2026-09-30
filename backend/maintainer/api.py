@@ -21,6 +21,7 @@ from .plugin_manager import PluginManager
 from .plugin_system import MAX_MESSAGE_BYTES, PluginError, PluginPackageError
 from .resets import reset_agent, reset_main, reset_model
 from .runtime import DiagnosticRuntime, agent_task
+from .review_recovery import RecoveryConflict, RecoveryDecision, inspect_review, recover_review
 from .sandboxes import LocalSandbox, ShipyardConnection
 from .schemas import AgentInput, DEFAULT_PROMPT, EmailSettings, GeneralSettings, GitHubSettings, ModelRef, OwnerDecision, ProviderInput, RepositoryInput, ResetInput, RunInput, SandboxSettings
 from .security import Settings, Vault, authenticate
@@ -63,7 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 task.status, task.lease_until = "interrupted", None
                 task.data = {**task.data, "error": "Service restarted during processing; no external action was replayed"}
                 db.add(Timeline(task_id=task.id, kind="interrupted", data={"reason": "service_restart"}))
-            for action in db.scalars(select(Outbox).where(Outbox.status == "executing")):
+            for action in db.scalars(select(Outbox).where(Outbox.status.in_(("executing", "reconciling")))):
                 action.status = "unknown"
                 action.error = "Service restarted while external action was executing; reconciliation required"
         app.state.processor = TaskProcessor(sessions, vault, settings, event_sink=app.state.plugins.publish_task, plugins=app.state.plugins)
@@ -583,7 +584,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             task = get(db, Task, task_id)
             if not (task.status.startswith("failed_") or task.status == "interrupted"):
                 raise HTTPException(409, "Only failed or safely interrupted tasks can be retried")
-            unsafe = db.scalar(select(Outbox).where(Outbox.task_id == task_id, Outbox.status.in_(("executing", "unknown"))))
+            unsafe = db.scalar(select(Outbox).where(Outbox.task_id == task_id, Outbox.status.in_(("executing", "unknown", "reconciling"))))
             if unsafe:
                 raise HTTPException(409, "Task has an unresolved external action")
             task.status, task.lease_until = "queued", None
@@ -598,12 +599,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allowed = {"bot_skipped", "bot_merge_deferred", "waiting_for_owner", "waiting_for_contributor"}
             if task.kind != "pull_request" or task.status not in allowed:
                 raise HTTPException(409, "Only deferred pull request tasks can be rechecked")
-            unsafe = db.scalar(select(Outbox).where(Outbox.task_id == task_id, Outbox.status.in_(("executing", "unknown"))))
+            unsafe = db.scalar(select(Outbox).where(Outbox.task_id == task_id, Outbox.status.in_(("executing", "unknown", "reconciling"))))
             if unsafe:
                 raise HTTPException(409, "Task has an unresolved external action")
             task.status, task.lease_until = "queued", None
             db.add(Timeline(task_id=task_id, kind="task_rechecked", data={"next_attempt": task.attempts + 1}))
         return {"status": "queued"}
+
+    @api.get("/tasks/{task_id}/review-recovery")
+    async def inspect_review_recovery(task_id: str):
+        try:
+            return await inspect_review(app.state.processor, task_id)
+        except RecoveryConflict as error:
+            raise HTTPException(409, str(error)) from error
+        except Exception as error:
+            raise HTTPException(502, "GitHub reconciliation unavailable; no retry authorized") from error
+
+    @api.post("/tasks/{task_id}/review-recovery")
+    async def decide_review_recovery(task_id: str, body: RecoveryDecision):
+        try:
+            return await recover_review(app.state.processor, task_id, body)
+        except RecoveryConflict as error:
+            raise HTTPException(409, str(error)) from error
+        except Exception as error:
+            raise HTTPException(502, "GitHub reconciliation unavailable; no retry authorized") from error
 
     @api.get("/providers")
     def providers():

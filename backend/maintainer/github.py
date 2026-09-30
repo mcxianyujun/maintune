@@ -3,6 +3,7 @@ import binascii
 import hashlib
 import hmac
 import json
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -102,6 +103,18 @@ class GitHubAppClient:
             if response.status_code >= 400:
                 raise GitHubError(f"GitHub App authentication failed ({response.status_code})")
             return response.json()
+
+    async def review_author(self) -> str:
+        """Resolve the current publishing App rather than trusting a caller login."""
+        async with self.client() as client:
+            response = await client.get("app", headers={"Authorization": f"Bearer {self.app_jwt()}"})
+            if response.status_code != 200:
+                raise GitHubError("GitHub App identity lookup failed")
+            app = response.json()
+            slug = app.get("slug", "")
+            if app.get("id") != self.app_id or not re.fullmatch(r"[A-Za-z0-9-]+", slug):
+                raise GitHubError("GitHub App identity is inconsistent")
+            return slug + "[bot]"
 
     async def issue_context(self, installation_id: int, repo: str, number: int) -> dict:
         issue = await self.request(installation_id, "GET", f"repos/{repo}/issues/{number}")
