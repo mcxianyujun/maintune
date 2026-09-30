@@ -1,0 +1,58 @@
+{
+  "id": "nanaseinori.mcp-review",
+  "name": "网页审阅 MCP",
+  "version": "0.1.0",
+  "plugin_api": 2,
+  "publisher": "NanaseInori",
+  "license": "MIT",
+  "description": "Review waiting pull requests in an MCP client; Maintune controls publishing.",
+  "maintune": {
+    "min_version": "0.1.0-preview.3"
+  },
+  "runtime": {
+    "default": "isolated",
+    "supported": [
+      "isolated"
+    ]
+  },
+  "entrypoint": {
+    "python": "web_review"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "access_token": {
+        "type": "string",
+        "title": "插件访问令牌",
+        "description": "填写本地 plugin-config.json 中的 access_token，不是 Maintune 管理令牌。",
+        "minLength": 32,
+        "maxLength": 128,
+        "secret": true
+      },
+      "repositories": {
+        "type": "array",
+        "title": "允许审阅的仓库",
+        "description": "填写 owner/repo，多个仓库用英文逗号分隔；空列表不接管任何任务。",
+        "items": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "maxItems": 100
+      },
+      "review_bot": {
+        "type": "string",
+        "title": "审阅声明中的名称",
+        "description": "仅用于 AI 声明，不会切换 GitHub 发布账号。",
+        "default": "Maintune",
+        "minLength": 1,
+        "maxLength": 39
+      }
+    },
+    "required": [
+      "access_token",
+      "repositories"
+    ],
+    "additionalProperties": false
+  }
+}
