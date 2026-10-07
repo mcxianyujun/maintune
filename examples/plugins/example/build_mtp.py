@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 MEMBERS = (
     "manifest.yaml", "README.md", "requirements.txt",
-    "src/workflow_notes.py", "src/provider_example.py", "ui/index.html",
+    "src/workflow_notes.py", "LICENSE",
 )
 
 
@@ -25,6 +25,6 @@ def build(output: Path) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Build the Workflow Notes example .mtp package")
+    parser = argparse.ArgumentParser(description="Build the minimal Plugin API v2 example .mtp package")
     parser.add_argument("output", type=Path, nargs="?", default=ROOT / "dist" / "workflow-notes-example.mtp")
     build(parser.parse_args().output)

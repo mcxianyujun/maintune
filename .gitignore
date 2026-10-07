@@ -33,3 +33,6 @@ id_ed25519*
 *.zip
 .DS_Store
 Thumbs.db
+
+# Private roadmap and agent reports are not distribution content.
+.codex/

@@ -240,3 +240,13 @@ migration.
 Preview 3 passed its release gates. The Stable preparation roadmap is tracked
 in `.codex/v0.1.0-stable-goals.md`; Plugin API v2 remains a preview-stage API
 until Stable compatibility gates and public developer artifacts are complete.
+
+## Minimal reference example
+
+Start with [the in-tree minimal example](../examples/plugins/example/README.md)
+to read one observation Hook, one typed code_worker Tool, top-level secret
+config and plugin-owned data_dir persistence. It is a developer reference,
+not a production plugin. Use the [public template](https://github.com/mcxianyujun/maintune-plugin-template)
+to start a project and [official AnySearch](https://github.com/mcxianyujun/maintune-plugin-anysearch)
+for a real search integration. The advanced MCP Review example is a separate
+roadmap phase; this reference does not demonstrate workflow replacement.

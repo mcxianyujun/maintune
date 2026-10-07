@@ -1,24 +1,42 @@
 {
   "id": "example.workflow-notes",
-  "name": "Workflow Notes Example",
+  "name": "Minimal Plugin API v2 Example",
   "version": "0.1.0-dev",
   "plugin_api": 2,
   "publisher": "mcxianyujun",
   "license": "AGPL-3.0-only",
-  "description": "A small, runnable Plugin API v2 example for task lifecycle observations.",
-  "maintune": { "min_version": "0.1.0" },
-  "runtime": { "default": "isolated", "supported": ["isolated"] },
-  "entrypoint": { "python": "workflow_notes" },
-  "python": { "dependencies": "requirements.txt" },
-  "dependencies": [
-    { "id": "example.anysearch", "version": "*", "requirement": "optional" }
-  ],
-  "ui": { "mode": "bundled", "entrypoint": "ui/index.html" },
+  "description": "Developer reference: one observation Hook, one integer Tool, config and plugin-owned data.",
+  "maintune": {
+    "min_version": "0.1.0-preview.3"
+  },
+  "runtime": {
+    "default": "isolated",
+    "supported": [
+      "isolated"
+    ]
+  },
+  "entrypoint": {
+    "python": "workflow_notes"
+  },
+  "python": {
+    "dependencies": "requirements.txt"
+  },
   "config_schema": {
     "type": "object",
     "properties": {
-      "label": { "type": "string", "title": "Display label", "minLength": 1, "maxLength": 60, "default": "Maintune" },
-      "record_started": { "type": "boolean", "title": "Record task starts", "default": true }
+      "label": {
+        "type": "string",
+        "title": "Display label",
+        "minLength": 1,
+        "maxLength": 60,
+        "default": "Example"
+      },
+      "demo_secret": {
+        "type": "string",
+        "title": "Demo secret (optional, never used externally)",
+        "secret": true,
+        "minLength": 1
+      }
     },
     "additionalProperties": false
   }
