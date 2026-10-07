@@ -22,15 +22,19 @@ def call(path: str, method: str = "GET", payload: dict | None = None, auth: bool
         return json.loads(response.read())
 
 
-def main() -> None:
-    for _ in range(60):
+def wait_for_health(attempts: int = 60):
+    for _ in range(attempts):
         try:
-            health = call("/healthz", auth=False)
-            break
-        except URLError:
+            return call("/healthz", auth=False)
+        except (URLError, OSError):
+            # Docker's published port can accept then reset a connection before
+            # Uvicorn is ready. Retry transport failures, never validation errors.
             time.sleep(2)
-    else:
-        raise SystemExit("Candidate container health timeout")
+    raise SystemExit("Candidate container health timeout")
+
+
+def main() -> None:
+    health = wait_for_health()
     assert health == {"status": "ok", "version": "0.1.0", "schema": 4}, health
     assert call("/api/capabilities")["plugins"] is True
     for filename, plugin_id, config in (
