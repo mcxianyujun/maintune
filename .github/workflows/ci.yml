@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, codex/v0.1.0-stable-rc]
 
 permissions:
   contents: read
@@ -24,6 +24,7 @@ jobs:
       - run: pip check
       - run: pytest -q
       - run: python scripts/release_audit.py
+      - run: python scripts/check_docs_consistency.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -39,27 +40,71 @@ jobs:
         working-directory: frontend
       - run: pnpm build
         working-directory: frontend
+      - name: Source package reproducibility and archive secret audit
+        run: python scripts/verify_release_reproducibility.py
       - run: cp .env.example .env
       - run: docker compose config --quiet
-      - run: docker build --build-arg APP_VERSION=0.1.0-preview.3 --tag ai-maintainer:ci .
+      - run: docker build --pull --build-arg APP_VERSION=0.1.0 --tag ai-maintainer:ci .
       - run: docker run --rm --entrypoint pip ai-maintainer:ci check
-      - name: Generate runtime SBOM
-        run: docker run --rm -i --entrypoint python ai-maintainer:ci - < scripts/generate_runtime_sbom.py > runtime-sbom.cdx.json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: runtime-sbom-cyclonedx
-          path: runtime-sbom.cdx.json
-          if-no-files-found: error
-          retention-days: 7
-      - name: Container smoke test
+      - name: Container runtime and public plugin SDK import
+        run: >-
+          docker run --rm --entrypoint python ai-maintainer:ci
+          -c "import maintainer, maintune_plugin_sdk, openhands.sdk; assert maintainer.__version__ == '0.1.0'; print('Candidate Core / OpenHands / Plugin API v2 SDK import: PASS')"
+      - name: Fresh candidate container inventories
         run: |
+          docker run --rm -i --entrypoint python ai-maintainer:ci - < scripts/generate_runtime_sbom.py > release-dist/runtime-sbom.cdx.json
+          docker run --rm --entrypoint pip ai-maintainer:ci freeze > release-dist/runtime-dependency-freeze.txt
+          docker image inspect ai-maintainer:ci --format '{{json .}}' > release-dist/candidate-image.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('release-dist')
+          bom = json.loads((root / 'runtime-sbom.cdx.json').read_text())
+          assert bom['metadata']['component']['version'] == '0.1.0'
+          components = bom['components']
+          assert any(item['name'] == 'maintune' and item['version'] == '0.1.0' for item in components)
+          with (root / 'runtime-dependency-license-report.tsv').open('w') as report:
+              report.write('name\tversion\tlicense_metadata\n')
+              for item in components:
+                  license_name = item.get('licenses', [{}])[0].get('license', {}).get('name', 'UNKNOWN')
+                  license_name = ' '.join(license_name.split())
+                  report.write(f"{item['name']}\t{item['version']}\t{license_name}\n")
+          print(f'Fresh candidate runtime inventory: {len(components)} distributions')
+          PY
+          printf '%s\n' "$GITHUB_SHA" > release-dist/CANDIDATE_COMMIT
+      - name: Container smoke test
+        env:
+          MAINTUNE_CI_ADMIN_TOKEN: ci-only-token-000000000000000000000000
+        run: |
+          python examples/plugins/example/build_mtp.py minimal-example.mtp
+          mkdir -p ci-data/plugins/inbox
+          cp minimal-example.mtp tests/fixtures/maintune-plugin-astrbot-0.1.0-preview.1.mtp ci-data/plugins/inbox/
+          sudo chown -R 10001:10001 ci-data
           docker run -d --name ai-maintainer-ci -p 127.0.0.1:18000:8000 \
-            -e MAINTAINER_ADMIN_TOKEN=ci-only-token-000000000000000000000000 \
+            -v "$PWD/ci-data:/app/data" \
+            -e MAINTAINER_ADMIN_TOKEN="$MAINTUNE_CI_ADMIN_TOKEN" \
             -e MAINTAINER_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= \
             ai-maintainer:ci
-          for attempt in $(seq 1 60); do curl -fsS http://127.0.0.1:18000/healthz && exit 0; sleep 2; done
-          docker logs ai-maintainer-ci
-          exit 1
+          python scripts/container_smoke.py
+      - name: Candidate artifact checksums
+        run: |
+          cd release-dist
+          sha256sum maintune-v0.1.0.tar.gz maintune-v0.1.0.zip runtime-sbom.cdx.json runtime-dependency-freeze.txt runtime-dependency-license-report.tsv candidate-image.json CANDIDATE_COMMIT > SHA256SUMS
+          sha256sum --check SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maintune-stable-rc-${{ github.sha }}
+          path: |
+            release-dist/maintune-v0.1.0.tar.gz
+            release-dist/maintune-v0.1.0.zip
+            release-dist/runtime-sbom.cdx.json
+            release-dist/runtime-dependency-freeze.txt
+            release-dist/runtime-dependency-license-report.tsv
+            release-dist/candidate-image.json
+            release-dist/CANDIDATE_COMMIT
+            release-dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
       - if: always()
         run: docker rm -f ai-maintainer-ci 2>/dev/null || true
 
@@ -77,3 +122,6 @@ jobs:
             $errors += $parseErrors
           }
           if ($errors.Count) { $errors | Format-List; exit 1 }
+      - name: Windows backup failure safety
+        shell: pwsh
+        run: ./scripts/windows/test-backup-safety.ps1

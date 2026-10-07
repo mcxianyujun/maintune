@@ -4,19 +4,19 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-自托管的 GitHub 仓库维护控制台。**v0.1.0-preview.3 候选版**通过 GitHub App 接收 Issue 与 Pull Request 事件，由受控 Agent 提出修改或审核意见，再由 Controller 与确定性 Policy 执行 GitHub 写操作。
+自托管的 GitHub 仓库维护控制台。**v0.1.0 Stable 候选版（尚未发布）**通过 GitHub App 接收 Issue 与 Pull Request 事件，由受控 Agent 提出修改或审核意见，再由 Controller 与确定性 Policy 执行 GitHub 写操作。
 
-## Preview 能力
+## 候选版能力
 
 - Issue → 分析 → Sandbox 修复 → 测试 → 独立审核 → PR。
 - 外部 PR 审核、贡献者更新后的重新审核，以及受策略约束的 Bot PR 自动合并。
 - OpenAI-compatible 模型、OpenHands SDK Runtime、Local 与 Shipyard Neo Sandbox。
 - Setup Wizard、任务时间线、用量、失败原因、备份与诊断。
 - Windows 11、Ubuntu 24.04 和 Docker Compose 本地构建部署。
-- Experimental Plugin API v1：`.mtp` 本地插件包、进程外生命周期、capability 权限、加密插件 Secret 与安全 README 查看器。
+- Plugin API v2 (with v1 compatibility)：`.mtp` 本地插件包、进程外生命周期、capability 权限、加密插件 Secret 与安全 README 查看器。
 - 官方 Preview 桥接插件：[Maintune AstrBot Bridge](https://github.com/mcxianyujun/maintune-plugin-astrbot) 与 [AstrBot Maintune Bridge](https://github.com/mcxianyujun/astrbot-plugin-maintune)。
 
-适合愿意自己部署、能审阅自动化策略，并希望试用 Issue → PR → Review → Merge 闭环的个人维护者和小团队。它仍是 Preview，不承诺无人值守运行、所有仓库都能自动修复，或插件 API 已稳定。
+适合愿意自己部署、能审阅自动化策略，并希望试用 Issue → PR → Review → Merge 闭环的个人维护者和小团队。当前仍处于 Stable 发布前验证，不承诺无人值守运行、所有仓库都能自动修复，或插件 API 已稳定。
 
 ## 快速开始
 
@@ -79,6 +79,8 @@ Local Sandbox 只提供路径、工作目录、超时与环境限制，不是强
 - [架构](docs/development/architecture.md)
 - [故障排查](docs/troubleshooting.md)
 - [界面素材与授权](docs/licensing/asset-attribution.md)
+
+Stable RC 状态与升级边界：[v0.1.0 RC](docs/releases/v0.1.0-rc.md)。
 
 ## 许可证
 
