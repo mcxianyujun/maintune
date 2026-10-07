@@ -44,7 +44,7 @@ bom = {
         "component": {
             "type": "application",
             "name": "Maintune",
-            "version": "0.1.0-preview.3",
+            "version": "0.1.0",
         }
     },
     "components": components,

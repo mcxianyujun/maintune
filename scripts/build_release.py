@@ -1,10 +1,11 @@
-"""Create source-only Preview bundles and checksums.
+"""Create source-only release bundles and checksums.
 
 The bundle intentionally contains no dependency artifact or runtime image.
 """
 from __future__ import annotations
 
 import hashlib
+import gzip
 import json
 import os
 import shutil
@@ -13,6 +14,7 @@ import subprocess
 import tarfile
 import tempfile
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,7 +23,7 @@ VERSION = META["version"]
 PREFIX = f"maintune-v{VERSION}"
 OUT = ROOT / "release-dist"
 
-EXCLUDED_PARTS = {".git", ".venv", ".pnpm-store", ".codex-remote-attachments", "node_modules", "data", "backups", "test-results", "release-dist", "__pycache__"}
+EXCLUDED_PARTS = {".git", ".codex", ".tmp", ".venv", ".pnpm-store", ".codex-remote-attachments", "node_modules", "data", "backups", "test-results", "release-dist", "__pycache__"}
 EXCLUDED_NAMES = {".env"}
 EXCLUDED_SUFFIXES = {".whl", ".sqlite", ".sqlite3", ".db", ".log", ".pem", ".key", ".p12", ".pfx", ".pyc"}
 
@@ -64,6 +66,10 @@ def main() -> None:
     if forbidden:
         raise SystemExit("Forbidden release content: " + ", ".join(map(str, forbidden)))
     OUT.mkdir(exist_ok=True)
+    epoch = int(os.environ.get("SOURCE_DATE_EPOCH") or subprocess.check_output(
+        ["git", "show", "-s", "--format=%ct", "HEAD"], cwd=ROOT
+    ).strip())
+    zip_date = datetime.fromtimestamp(max(epoch, 315532800), timezone.utc).timetuple()[:6]
     for old in OUT.glob(f"{PREFIX}.*"):
         old.unlink()
     with tempfile.TemporaryDirectory(prefix="ai-maintainer-release-") as temporary:
@@ -73,14 +79,14 @@ def main() -> None:
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / relative, destination)
         tar_path = OUT / f"{PREFIX}.tar.gz"
-        with tarfile.open(tar_path, "w:gz", format=tarfile.PAX_FORMAT) as archive:
+        with tar_path.open("wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=epoch) as compressed, tarfile.open(fileobj=compressed, mode="w", format=tarfile.PAX_FORMAT) as archive:
             for path in sorted(bundle.rglob("*")):
                 arcname = Path(PREFIX) / path.relative_to(bundle)
                 info = archive.gettarinfo(str(path), str(arcname))
                 info.uid = info.gid = 0
                 info.uname = info.gname = "root"
-                if path.suffix == ".sh":
-                    info.mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                info.mtime = epoch
+                info.mode = 0o755 if path.is_dir() or path.suffix == ".sh" else 0o644
                 if path.is_file():
                     with path.open("rb") as stream:
                         archive.addfile(info, stream)
@@ -90,7 +96,13 @@ def main() -> None:
         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
             for path in sorted(bundle.rglob("*")):
                 if path.is_file():
-                    archive.write(path, (Path(PREFIX) / path.relative_to(bundle)).as_posix())
+                    name = (Path(PREFIX) / path.relative_to(bundle)).as_posix()
+                    info = zipfile.ZipInfo(name, date_time=zip_date)
+                    info.create_system = 3
+                    info.compress_type = zipfile.ZIP_DEFLATED
+                    mode = 0o755 if path.suffix == ".sh" else 0o644
+                    info.external_attr = (stat.S_IFREG | mode) << 16
+                    archive.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
     checksum_path = OUT / "SHA256SUMS"
     with checksum_path.open("w", encoding="ascii", newline="\n") as stream:
         stream.write("".join(f"{sha256(path)}  {path.name}\n" for path in (tar_path, zip_path)))

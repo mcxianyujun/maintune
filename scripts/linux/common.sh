@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 PRODUCT="Maintune"
-DEFAULT_VERSION="0.1.0-preview.3"
+DEFAULT_VERSION="0.1.0"
 DEFAULT_REPOSITORY="mcxianyujun/maintune"
 
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }

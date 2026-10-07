@@ -49,3 +49,7 @@ No supported minimal install, telemetry extra, or OpenHands subpackage was found
 ## Scope and next check
 
 The exact release container is rebuilt and checked by the public `main` CI before the tag is published, and its CycloneDX SBOM is retained with the release evidence. A source Release Bundle and a prebuilt image have different redistribution surfaces. This blocker applies to a public prebuilt image, which is **not provided in v0.1.0-preview.2**; it does not block the source/local-build Preview. Restoring GHCR distribution requires an upstream packaging change or explicit redistribution permission.
+
+## v0.1.0 Stable RC scope (2026-10-07)
+
+The Stable RC keeps the Preview 3 dependency lock unchanged. The historical investigation above is retained; it does not establish new upstream permission. Core remains source/local-build only. No public prebuilt GHCR image or proprietary dependency artifact is authorized for redistribution. Fresh candidate container inventory is a required RC gate and must not be substituted with a developer-environment SBOM. Contributor code is accepted under AGPL-only unless separate rights for commercial relicensing have been obtained; a PR alone does not transfer those rights.
