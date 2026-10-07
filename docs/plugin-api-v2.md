@@ -227,6 +227,19 @@ ID and a structured verdict for the current head SHA. Core rejects stale
 heads and continues its existing Owner Gate and GitHub review flow. The
 isolated-process compatibility test covers this without any private imports.
 
+## MCP web review example
+
+The [MCP web review example](../examples/plugins/mcp-review/README.md) packages
+an external `pr.review` hook and a loopback Streamable HTTP gateway. It lets
+an MCP client read captured tasks, prepare an immutable review and explicitly
+resume the existing Controller flow. It does not receive GitHub credentials
+or publish directly. Its test dependencies are isolated from Core.
+
+The example README describes installation, authorization, persistence,
+transport limits and the separate host fixes for large IPC messages and
+uncertain GitHub writes. Public Webhook delivery and macOS hardware remain
+unverified; the example does not imply those release gates are complete.
+
 ## Compatibility and release gate
 
 An unchanged Preview 2 AstrBot Bridge `.mtp` release artifact is checked into

@@ -1,0 +1,10 @@
+{
+  "intro": "配置 Maintune 网页审阅连接。不会安装插件或修改你的 Maintune；请先准备指向本机 8787 端口的 HTTPS 反向代理。",
+  "maintune": "Maintune 地址（例如 http://127.0.0.1:8000）：",
+  "public": "网关的公网 HTTPS 域名（不含路径）：",
+  "repos": "允许审阅的仓库，支持 GitHub 链接或 owner/repo，多个用英文逗号分隔：",
+  "https": "网关地址必须是 HTTPS 域名，不能带账号、路径、查询参数或片段。",
+  "exists": ".private 已存在，为避免覆盖现有凭据，配置已停止。修改其中的配置文件，或备份并重命名该目录后重新配置。",
+  "connection": "名称：Maintune Web Review\n服务器 URL：{url}\n身份验证：无身份验证\n\n这个完整 URL 本身是访问凭据。不要发到 issue、PR 或公开截图。反向代理必须关闭此路径的访问日志。",
+  "done": "已生成 .private/gateway.json、plugin-config.json 和 connection.txt。将 plugin-config.json 的字段填入 Maintune 插件配置并启用插件，再运行启动脚本。"
+}
