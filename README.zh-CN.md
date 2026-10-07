@@ -2,11 +2,13 @@
 
 自托管 GitHub 自动维护工具。
 
+[Maintune v0.1.0 Stable](https://github.com/mcxianyujun/maintune/releases/tag/v0.1.0) 已发布，提供源码及本地构建部署方式。
+
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-自托管的 GitHub 仓库维护控制台。**v0.1.0 Stable 候选版（尚未发布）**通过 GitHub App 接收 Issue 与 Pull Request 事件，由受控 Agent 提出修改或审核意见，再由 Controller 与确定性 Policy 执行 GitHub 写操作。
+自托管的 GitHub 仓库维护控制台。**v0.1.0 Stable**通过 GitHub App 接收 Issue 与 Pull Request 事件，由受控 Agent 提出修改或审核意见，再由 Controller 与确定性 Policy 执行 GitHub 写操作。
 
-## 候选版能力
+## 主要能力
 
 - Issue → 分析 → Sandbox 修复 → 测试 → 独立审核 → PR。
 - 外部 PR 审核、贡献者更新后的重新审核，以及受策略约束的 Bot PR 自动合并。
@@ -16,7 +18,7 @@
 - Plugin API v2 (with v1 compatibility)：`.mtp` 本地插件包、进程外生命周期、capability 权限、加密插件 Secret 与安全 README 查看器。
 - 官方 Preview 桥接插件：[Maintune AstrBot Bridge](https://github.com/mcxianyujun/maintune-plugin-astrbot) 与 [AstrBot Maintune Bridge](https://github.com/mcxianyujun/astrbot-plugin-maintune)。
 
-适合愿意自己部署、能审阅自动化策略，并希望试用 Issue → PR → Review → Merge 闭环的个人维护者和小团队。当前仍处于 Stable 发布前验证，不承诺无人值守运行、所有仓库都能自动修复，或插件 API 已稳定。
+适合愿意自己部署、能审阅自动化策略，并希望试用 Issue → PR → Review → Merge 闭环的个人维护者和小团队。v0.1.0 已作为源码／本地构建版本发布，不承诺无人值守运行、所有仓库都能自动修复，或插件 API 已稳定。
 
 ## 快速开始
 
@@ -51,14 +53,14 @@ docker compose up -d --wait
 
 ## 发布状态
 
-| 组件 | Preview 状态 |
+| 组件 | 发布状态 |
 | --- | --- |
 | Windows 11 安装器 | Available，真实 Docker Desktop E2E 待人工验证 |
 | Linux 安装器 | Available，Ubuntu 24.04 验收目标 |
 | Docker Compose | Available，本地构建 |
-| 公共预构建容器 | **当前预览候选版不提供** |
+| 公共预构建容器 | **本源码／本地构建版本不提供** |
 
-为避免重新分发一个许可条款目前不够明确的传递 Runtime 工件，Preview 安装器会在用户机器上构建镜像，并从官方包源取得固定版本依赖。安装需要访问 GitHub、PyPI 和基础镜像仓库；Preview 不支持完整离线安装。技术说明见 [Runtime 依赖](docs/licensing/runtime-dependencies.md)。
+为避免重新分发一个许可条款目前不够明确的传递 Runtime 工件，安装器会在用户机器上构建镜像，并从官方包源取得固定版本依赖。安装需要访问 GitHub、PyPI 和基础镜像仓库；本版本不支持完整离线安装。技术说明见 [Runtime 依赖](docs/licensing/runtime-dependencies.md)。
 
 插件系统在本版本中标记为 **Experimental**，其配置结构、界面和扩展接口仍可能变化。Windows 11 + Docker Desktop 安装流程仍属于人工验证项。
 
@@ -80,7 +82,7 @@ Local Sandbox 只提供路径、工作目录、超时与环境限制，不是强
 - [故障排查](docs/troubleshooting.md)
 - [界面素材与授权](docs/licensing/asset-attribution.md)
 
-Stable RC 状态与升级边界：[v0.1.0 RC](docs/releases/v0.1.0-rc.md)。
+Stable 验证记录与升级边界：[v0.1.0 RC](docs/releases/v0.1.0-rc.md)。
 
 ## 许可证
 

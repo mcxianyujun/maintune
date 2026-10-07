@@ -2,13 +2,13 @@
 
 A self-hosted autonomous maintainer for GitHub.
 
-Maintune v0.1.0 is in Stable release-candidate validation; no Stable release has been published.
+[Maintune v0.1.0 Stable](https://github.com/mcxianyujun/maintune/releases/tag/v0.1.0) is available as a source/local-build release.
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-A self-hosted GitHub repository maintenance console. **v0.1.0 Stable release candidate (not yet released)** receives Issue and Pull Request events through a GitHub App, asks bounded Agents for analysis or code review, and leaves every GitHub write to the Controller and deterministic Policy.
+A self-hosted GitHub repository maintenance console. **v0.1.0 Stable** receives Issue and Pull Request events through a GitHub App, asks bounded Agents for analysis or code review, and leaves every GitHub write to the Controller and deterministic Policy.
 
-## Candidate capabilities
+## Capabilities
 
 - Issue triage separates actionable bugs, incomplete reports, product features, high-risk changes, and non-actionable chat.
 - Actionable Issue → Sandbox fix → tests → independent review → PR.
@@ -19,7 +19,7 @@ A self-hosted GitHub repository maintenance console. **v0.1.0 Stable release can
 - Plugin API v2 (with v1 compatibility) with validated `.mtp` packages, out-of-process lifecycle, capability enforcement, encrypted plugin secrets, and a safe README viewer.
 - Official preview bridges: [Maintune AstrBot Bridge](https://github.com/mcxianyujun/maintune-plugin-astrbot) and [AstrBot Maintune Bridge](https://github.com/mcxianyujun/astrbot-plugin-maintune).
 
-This release candidate is intended for maintainers and small teams who can self-host and review automation policy. It does not promise unattended operation, universal automatic fixes, or a stable plugin API.
+This release is intended for maintainers and small teams who can self-host and review automation policy. It does not promise unattended operation, universal automatic fixes, or a stable plugin API.
 
 ## Quick start
 
@@ -54,12 +54,12 @@ Open `http://127.0.0.1:8000` and complete the Setup Wizard. Put an HTTPS reverse
 
 ## Feature status and known limitations
 
-| Component | Preview status |
+| Component | Release status |
 | --- | --- |
 | Windows 11 installer | Available; final Docker Desktop E2E remains a manual verification item |
 | Linux installer | Available; Ubuntu 24.04 is the acceptance target |
 | Docker Compose | Available; images are built locally |
-| Prebuilt GHCR image | **Not provided in this source/local-build candidate** |
+| Prebuilt GHCR image | **Not provided in this source/local-build release** |
 | Plugin system | **Experimental**; interfaces may change |
 
 The installer builds on the user's machine and downloads pinned dependencies from their official package sources. Local builds require network access to GitHub, PyPI, and the configured base-image registry and does not provide a fully offline installation path.
@@ -82,7 +82,7 @@ Local Sandbox limits paths, working directories, timeouts, and environment varia
 - [Preview release notes](docs/preview-release.md)
 - [Artwork and attribution](docs/licensing/asset-attribution.md)
 
-Stable RC status and upgrade limitations: [v0.1.0 RC](docs/releases/v0.1.0-rc.md).
+Stable validation record and upgrade limitations: [v0.1.0 RC](docs/releases/v0.1.0-rc.md).
 
 ## Licensing
 
